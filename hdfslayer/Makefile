@@ -1,7 +1,7 @@
 all: simplehdfs simplehdfsclient
 
-simplehdfs: simplehdfs.cc
-	g++ simplehdfs.cc -o simplehdfs
+simplehdfs: simplehdfs.cc message.h
+	g++ simplehdfs.cc -o bin/simplehdfs
 
-simplehdfsclient: simplehdfsclient.cc
-	g++ simplehdfsclient.cc -o simplehdfsclient
+simplehdfsclient: simplehdfsclient.cc message.h
+	g++ simplehdfsclient.cc -o bin/simplehdfsclient

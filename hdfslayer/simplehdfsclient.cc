@@ -17,6 +17,9 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
+/* locals */
+#include "message.h"
+
 using namespace std;
 
 class TCPClient {
@@ -52,12 +55,20 @@ public:
 		}
 	}
 
-	int sendMessage(const char *msg) {
-		send(sock , msg , strlen(msg) , 0 );
-		cout << "Hello message sent" << endl;
-		valread = read( sock , buffer, 1024);
-		cout << buffer << endl;
+	int sendMessage(string s) {
+		send(sock , s.c_str() , s.length() , 0 );
 		return 0;
+	}
+
+	string readMessage() {
+		valread = read(sock , buffer, 1024);
+		if (valread < 0) {
+			cout << "Read error" << endl;
+			exit(1);
+		}
+		cout << "readMessage returned = " << valread << endl;
+		string replyString(buffer);
+		return replyString;
 	}
 
 };
@@ -65,10 +76,41 @@ public:
 class SimpleHDFSClient {
 
 public:
+	string createReadMessage(string fileName) {
+		Message msg;
+		msg.mtype = READ;
+		msg.fileName = fileName;
+		return msg.serialize();
+	}
+
+	string createWriteMessage(string fileName) {
+		Message msg;
+		msg.mtype = WRITE;
+		msg.fileName = fileName;
+		return msg.serialize();
+	}
+
+	void printReplyString(string rString) {
+		Message msg = Message::deserialize(rString);
+		msg.printMessage();
+	}
+
 	void connectToMaster() {
 		TCPClient tclient;
 		tclient.connectToServer("127.0.0.1", 5646);
-		tclient.sendMessage("Hello from client");
+
+		string s = createReadMessage("/tmp/first_file");
+		cout << "serialized string =" << s << endl;
+		tclient.sendMessage(s);
+		cout << "File READ message sent" << endl;
+
+		string replyString = tclient.readMessage();
+		if (replyString.length() == 0) {
+			cout << "Server connection closed." << endl;
+		} else {
+			printReplyString(replyString);
+			cout << "Reply received"   << replyString << endl;
+		}
 	}
 };
 

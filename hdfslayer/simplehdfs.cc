@@ -17,31 +17,10 @@
 #include <string.h>
 #include <unistd.h>
 
+/* locals */
+#include "message.h"
+
 using namespace std;
-
-enum MessageTypes {
-	READ,
-	WRITE
-};
-
-/* Message exchanged by client and server */
-class Message {
-private:
-	const char fieldSeparator = 0x01;
-	int serialsize;
-public:
-	MessageTypes mtype;
-	string fileName;
-
-	byte[] serialize() {
-	}
-
-	int serializedSize() {
-	}
-
-	Message deserialize() {
-	}
-};
 
 class TCPServer {
 
@@ -84,26 +63,25 @@ public:
 			cout << "listen";
 			exit(EXIT_FAILURE);
 		}
-		cout << "Listening on the socket on port" << serverportnum << endl;
+		cout << "Listening on the socket on port: " << serverportnum << endl;
 		if ((new_socket = accept(server_fd, (struct sockaddr *)&address,
 						   (socklen_t*)&addrlen))<0) {
 			cout << "accept";
 			exit(EXIT_FAILURE);
 		}
 		valread = read(new_socket , buffer, 1024);
-		cout << buffer;
-		send(new_socket , hello , strlen(hello) , 0 );
-		cout << "Hello message sent" << endl;
 		string bufferString(buffer);
 		return bufferString;
+	}
+
+	void sendMessage(string s) {
+		send(new_socket , s.c_str() , s.length() , 0 );
 	}
 
 	/* storage formats already encode the data here, all we do is store it as it is received in the
 	 * file
 	 */
-	string getData() {
-
-	}
+	string getData() {}
 };
 
 class SimpleHDFSMaster {
@@ -134,16 +112,14 @@ public:
 		TCPServer tserver;
 		tserver.bindToPort(HDFSPORT);
 		string str = tserver.getMessage();
-		cout << "Message received: " << str;
+		Message clientMessage = Message::deserialize(str);
+		clientMessage.printMessage();
+		cout << "Message received: " << str << endl;
 	}
 
-	void readFile() {
+	void readFile() {}
 
-	}
-
-	void writeFile() {
-
-	}
+	void writeFile() {}
 
 };
 
@@ -157,8 +133,7 @@ private:
 	string chunkserverName;
 	int nameCounter;
 	string chunkroot, chunkdataroot;
-	string getNewFileName() {
-	}
+	string getNewFileName() {}
 
 public:
 	void init() {
@@ -171,11 +146,9 @@ public:
 		mfile.close();
 	}
 
-	void read() {
-	}
+	void read() {}
 
-	void write() {
-	}
+	void write() {}
 };
 
 int  main() {
