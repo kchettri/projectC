@@ -22,6 +22,9 @@
 
 using namespace std;
 
+//move it to messgae.cc
+const string Message::fieldSeparator = " ";
+
 class TCPClient {
 
 private:
@@ -74,6 +77,8 @@ public:
 };
 
 class SimpleHDFSClient {
+private:
+	TCPClient tclient;
 
 public:
 	string createReadMessage(string fileName) {
@@ -96,10 +101,11 @@ public:
 	}
 
 	void connectToMaster() {
-		TCPClient tclient;
 		tclient.connectToServer("127.0.0.1", 5646);
+	}
 
-		string s = createReadMessage("/tmp/first_file");
+	void readFile(string fileName) {
+		string s = createReadMessage(fileName);
 		cout << "serialized string =" << s << endl;
 		tclient.sendMessage(s);
 		cout << "File READ message sent" << endl;
@@ -112,10 +118,34 @@ public:
 			cout << "Reply received"   << replyString << endl;
 		}
 	}
+
+	void cliLoop() {
+		connectToMaster();
+		string clicommand;
+		while(true) {
+			cout << "shdfscli# ";
+			//cin >> std::noskipws >> clicommand;
+			getline(cin, clicommand);
+			string originalcliCommand(clicommand.c_str());
+			Message msgObj = Message::deserialize(clicommand);
+
+			switch(msgObj.mtype) {
+
+				case READ:
+					readFile(msgObj.fileName);
+					break;
+
+				case EXIT:
+					cout << "Exiting" << endl;
+					exit(0);
+			}
+
+		}
+	}
 };
 
 int main() {
 	SimpleHDFSClient shdfsclient;
-	shdfsclient.connectToMaster(); //simple hello protocol
+	shdfsclient.cliLoop();
 }
 

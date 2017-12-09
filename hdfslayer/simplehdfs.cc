@@ -22,6 +22,10 @@
 
 using namespace std;
 
+//move it to message.cc
+const string Message::fieldSeparator = " ";
+
+
 class TCPServer {
 
 private:
@@ -112,9 +116,11 @@ public:
 		TCPServer tserver;
 		tserver.bindToPort(HDFSPORT);
 		string str = tserver.getMessage();
+		string originalMessage(str.c_str());
+
+		//strtok changes the string that it tokenizes
 		Message clientMessage = Message::deserialize(str);
 		clientMessage.printMessage();
-		cout << "Message received: " << str << endl;
 	}
 
 	void readFile() {}
