@@ -130,13 +130,19 @@ public:
 			Message msgObj = Message::deserialize(clicommand);
 
 			switch(msgObj.mtype) {
-
 				case READ:
 					readFile(msgObj.fileName);
 					break;
 
+				case HELP:
+					Message::printAllMessageTypes();
+					break;
+
+				case UPLOAD:
+					//get chunkserver address and upload to chunkserver
+					break;
+
 				case EXIT:
-					cout << "Exiting" << endl;
 					exit(0);
 			}
 

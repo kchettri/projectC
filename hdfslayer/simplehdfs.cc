@@ -4,9 +4,11 @@
  *  Simple HDFS server.
  */
 
+/* C++ header */
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <thread>
 
 /*
  * C headers
@@ -24,7 +26,6 @@ using namespace std;
 
 //move it to message.cc
 const string Message::fieldSeparator = " ";
-
 
 class TCPServer {
 
@@ -88,6 +89,56 @@ public:
 	string getData() {}
 };
 
+class SimpleHDFSChunkServer {
+
+/* Format of metadata:
+ *
+ *	filename | chunkid | localfilename
+ */
+private:
+	string chunkserverName;
+	int nameCounter;
+	string chunkroot, chunkdataroot;
+	string getNewFileName() {}
+	int portNum;
+
+public:
+
+	SimpleHDFSChunkServer(int pnum) {
+		portNum = pnum;
+	}
+
+	void init() {
+		chunkroot = "/home/projectC/hdfsroot";
+		chunkdataroot = chunkroot + "/dataroot";
+		//metadata file
+		ofstream mfile;
+		mfile.open((chunkroot + "/mfile").c_str());
+		mfile << "Init text";
+		mfile.close();
+	}
+
+	void chunkMain() {
+		TCPServer tserver;
+		tserver.bindToPort(portNum);
+		while(true) {
+			//data transfer loop
+			string str = tserver.getMessage();
+			string originalMessage(str.c_str());
+
+			//strtok changes the string that it tokenizes
+			Message clientMessage = Message::deserialize(str);
+			clientMessage.printMessage();
+		}
+
+	}
+
+	void read() {}
+
+	void write() {}
+};
+
+
 class SimpleHDFSMaster {
 
 /* Format of hdfs metdata:
@@ -99,6 +150,7 @@ private:
 	vector<string> chunkservers;
 	string hdfsroot, dataroot;
 	const int HDFSPORT = 5646;
+	vector<SimpleHDFSChunkServer> chunkServers;
 
 public:
 	void init() {
@@ -112,15 +164,24 @@ public:
 		chunkservers.push_back("localhost");
 	}
 
-	void server() {
+	void serverMain() {
 		TCPServer tserver;
 		tserver.bindToPort(HDFSPORT);
-		string str = tserver.getMessage();
-		string originalMessage(str.c_str());
 
-		//strtok changes the string that it tokenizes
-		Message clientMessage = Message::deserialize(str);
-		clientMessage.printMessage();
+		/* Create chunkserver threads */
+		SimpleHDFSChunkServer chunkServer(6800);
+		thread chunkServerThread(chunkServer.chunkMain());
+
+		//Message Loop
+		while (true) {
+			string str = tserver.getMessage();
+			string originalMessage(str.c_str());
+
+			//strtok changes the string that it tokenizes
+			Message clientMessage = Message::deserialize(str);
+			clientMessage.printMessage();
+		}
+		chunkServerThread.join();
 	}
 
 	void readFile() {}
@@ -129,38 +190,10 @@ public:
 
 };
 
-class SimpleHDFSChunkServer {
-
-/* Format of metadata:
- *
- *	filename | chunkid | localfilename
- */
-private:
-	string chunkserverName;
-	int nameCounter;
-	string chunkroot, chunkdataroot;
-	string getNewFileName() {}
-
-public:
-	void init() {
-		chunkroot = "/home/projectC/hdfsroot";
-		chunkdataroot = chunkroot + "/dataroot";
-		//metadata file
-		ofstream mfile;
-		mfile.open((chunkroot + "/mfile").c_str());
-		mfile << "Init text";
-		mfile.close();
-	}
-
-	void read() {}
-
-	void write() {}
-};
-
 int  main() {
 	SimpleHDFSMaster shdfsmaster;
 	shdfsmaster.init();
-	shdfsmaster.server();
+	shdfsmaster.serverMain();
 	return 0;
 }
 

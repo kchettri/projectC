@@ -12,17 +12,20 @@ enum MessageType {
 	STATUS,
 	INVALID,
 	LIST,
-	EXIT
+	EXIT,
+	HELP,
+	UPLOAD
 };
 
-static array<string, 6> messageTypeStringArr {
+static array<string, 8> messageTypeStringArr {
 	"read",
 	"write",
 	"status",
 	"invalid",
 	"list",
-	"exit"
-
+	"exit",
+	"help",
+	"upload"
 };
 
 /* Message exchanged by client and server */
@@ -55,7 +58,6 @@ public:
 				return (MessageType)i;
 			}
 		}
-
 		return INVALID;
 	}
 
@@ -92,6 +94,25 @@ public:
 		} else  if (mtype == STATUS) {
 			cout << ", " << statusString << endl;
 		}
+	}
+
+/*
+	"read",
+	"write",
+	"status",
+	"invalid",
+	"list",
+	"exit",
+	"help"
+*/
+
+	static void printAllMessageTypes() {
+		cout << endl
+			 << "Command types:" << endl
+			 << " read <filename>" << endl
+			 << " write <filename>" << endl
+			 << " upload <localfilename> <remote filename>" << endl
+			 << " list" << endl << endl;
 	}
 };
 
