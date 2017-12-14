@@ -68,7 +68,7 @@ public:
 			cout << "listen";
 			exit(EXIT_FAILURE);
 		}
-		cout << "Listening on the socket on port: " << serverportnum << endl;
+		//cout << "Listening on the socket on port: " << serverportnum << endl;
 		if ((new_socket = accept(server_fd, (struct sockaddr *)&address,
 						   (socklen_t*)&addrlen))<0) {
 			cout << "accept";
@@ -121,6 +121,7 @@ public:
 	void chunkMain() {
 		TCPServer tserver;
 		tserver.bindToPort(portNum);
+		cout << "Chunkserver listening at port: " << portNum << endl;
 		while(true) {
 			//data transfer loop
 			string str = tserver.getMessage();
@@ -130,7 +131,6 @@ public:
 			Message clientMessage = Message::deserialize(str);
 			clientMessage.printMessage();
 		}
-
 	}
 
 	void read() {}
@@ -164,13 +164,18 @@ public:
 		chunkservers.push_back("localhost");
 	}
 
+	void LookUpFile(string fileName) {
+
+	}
+
 	void serverMain() {
 		TCPServer tserver;
 		tserver.bindToPort(HDFSPORT);
+		cout << "HDFSmaster listening at port: " << HDFSPORT << endl;
 
 		/* Create chunkserver threads */
 		SimpleHDFSChunkServer chunkServer(6800);
-		thread chunkServerThread(chunkServer.chunkMain());
+		thread chunkServerThread(&SimpleHDFSChunkServer::chunkMain, chunkServer);
 
 		//Message Loop
 		while (true) {
@@ -180,11 +185,27 @@ public:
 			//strtok changes the string that it tokenizes
 			Message clientMessage = Message::deserialize(str);
 			clientMessage.printMessage();
+
+			switch(clientMessage.mtype) {
+				case READ:
+					break;
+
+				case WRITE:
+					break;
+
+				case LIST:
+					break;
+
+				case UPLOAD:
+					break;
+			}
 		}
 		chunkServerThread.join();
 	}
 
-	void readFile() {}
+	void readFile() {
+
+	}
 
 	void writeFile() {}
 
