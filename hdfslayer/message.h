@@ -14,10 +14,11 @@ enum MessageType {
 	LIST,
 	EXIT,
 	HELP,
-	UPLOAD
+	UPLOAD,
+	CSDISCOVER
 };
 
-static array<string, 8> messageTypeStringArr {
+static array<string, 9> messageTypeStringArr {
 	"read",
 	"write",
 	"status",
@@ -25,8 +26,11 @@ static array<string, 8> messageTypeStringArr {
 	"list",
 	"exit",
 	"help",
-	"upload"
+	"upload",
+	"csdiscover"
 };
+
+
 
 /* Message exchanged by client and server */
 class Message {
@@ -38,6 +42,8 @@ public:
 	string fileName;
 	string statusString;
 	string messageInString;
+	string chunkServerHostName;
+	string chunkServerPortNum;
 
 	Message() { }
 
@@ -64,8 +70,25 @@ public:
 	string serialize() {
 		string serialString = "";
 		serialString += getMessageTypeString(mtype);
-		serialString +=fieldSeparator;
-		serialString +=fileName;
+
+		if(mtype == READ || mtype == WRITE) {
+			serialString +=fieldSeparator;
+			serialString +=fileName;
+		} else if (mtype == STATUS) {
+			serialString +=fieldSeparator;
+			serialString +=statusString;
+		} else if (mtype == LIST) {
+
+		} else if (mtype == EXIT) {
+
+		} else if (mtype == UPLOAD) {
+
+		} else if (mtype == CSDISCOVER) {
+			serialString +=fieldSeparator;
+			serialString +=chunkServerHostName;
+			serialString +=fieldSeparator;
+			serialString +=chunkServerPortNum;
+		}
 		return serialString;
 	}
 
@@ -76,13 +99,24 @@ public:
 		if(token == NULL) { cout << "Invalid command string" << endl; exit(1); }
 		m.mtype = m.getMessageType(token);
 
-		token = strtok(NULL, fieldSeparator.c_str());
-		if (token != NULL) {
-			if (m.mtype == READ || m.mtype == WRITE) {
-				m.fileName = token;
-			} else  if (m.mtype == STATUS) {
-				m.statusString = token;
-			}
+		vector<string> tokens;
+		while((token = strtok(NULL, fieldSeparator.c_str())) != NULL) {
+			tokens.push_back(token);
+		}
+
+		if (m.mtype == READ || m.mtype == WRITE) {
+			m.fileName = tokens.at(0);
+		} else  if (m.mtype == STATUS) {
+			m.statusString = tokens.at(0);
+		} else if (m.mtype == LIST) {
+
+		} else if (m.mtype == EXIT) {
+
+		} else if (m.mtype == UPLOAD) {
+
+		} else if (m.mtype == CSDISCOVER) {
+			m.chunkServerHostName = tokens.at(0);
+			m.chunkServerPortNum = tokens.at(1);
 		}
 		return m;
 	}
@@ -93,18 +127,17 @@ public:
 			cout << ", " << fileName << endl;
 		} else  if (mtype == STATUS) {
 			cout << ", " << statusString << endl;
+		} else if (mtype == LIST) {
+
+		} else if (mtype == EXIT) {
+
+		} else if (mtype == UPLOAD) {
+
+		} else if (mtype == CSDISCOVER) {
+			cout << " chunkServerHostName=" << chunkServerHostName ;
+			cout << " chunkServerPortNum=" << chunkServerPortNum << endl;
 		}
 	}
-
-/*
-	"read",
-	"write",
-	"status",
-	"invalid",
-	"list",
-	"exit",
-	"help"
-*/
 
 	static void printAllMessageTypes() {
 		cout << endl
@@ -115,6 +148,11 @@ public:
 			 << " list" << endl << endl;
 	}
 };
+
+
+//space because command contains space characters and it is used to deserialize and create Message object
+//space cannot appear in the field values, otherwise it will have error.
+const string Message::fieldSeparator = " ";
 
 
 

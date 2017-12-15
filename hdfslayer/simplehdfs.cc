@@ -24,9 +24,6 @@
 
 using namespace std;
 
-//move it to message.cc
-const string Message::fieldSeparator = " ";
-
 class TCPServer {
 
 private:
@@ -100,12 +97,15 @@ private:
 	int nameCounter;
 	string chunkroot, chunkdataroot;
 	string getNewFileName() {}
-	int portNum;
+	string portNum;
+	int portNumInt;
 
 public:
 
-	SimpleHDFSChunkServer(int pnum) {
+	SimpleHDFSChunkServer(string pnum) {
 		portNum = pnum;
+		portNumInt = stoi(portNum);
+		chunkserverName = "127.0.0.1";
 	}
 
 	void init() {
@@ -120,7 +120,7 @@ public:
 
 	void chunkMain() {
 		TCPServer tserver;
-		tserver.bindToPort(portNum);
+		tserver.bindToPort(portNumInt);
 		cout << "Chunkserver listening at port: " << portNum << endl;
 		while(true) {
 			//data transfer loop
@@ -130,7 +130,54 @@ public:
 			//strtok changes the string that it tokenizes
 			Message clientMessage = Message::deserialize(str);
 			clientMessage.printMessage();
+
+			Message replyMessage;
+			string replyMessageString;
+
+			switch(clientMessage.mtype) {
+				case READ:
+					replyMessage = readFile(clientMessage);
+					replyMessageString = replyMessage.serialize();
+					cout << "replyMessageString=" << replyMessageString << endl;
+					tserver.sendMessage(replyMessage.serialize());
+					break;
+
+				case WRITE:
+					break;
+
+				case LIST: //this can only happen in Master
+					break;
+
+				case UPLOAD:
+					break;
+			}
 		}
+	}
+
+	Message readFile(Message requestMessage) {
+		Message replyMessage;
+
+		//read the actual file, for now just send the status
+
+		replyMessage.mtype = STATUS;
+		replyMessage.statusString = "ReadMessage called for file: " + requestMessage.fileName;
+		return replyMessage;
+	}
+
+	string getHostName() {
+		return "127.0.0.1";
+	}
+
+	int getPortNumInt() {
+		return portNumInt;
+	}
+
+	string getPortNum() {
+		return portNum;
+	}
+
+	string getChunkServerName() {
+		return chunkserverName;
 	}
 
 	void read() {}
@@ -164,18 +211,17 @@ public:
 		chunkservers.push_back("localhost");
 	}
 
-	void LookUpFile(string fileName) {
-
-	}
-
 	void serverMain() {
 		TCPServer tserver;
 		tserver.bindToPort(HDFSPORT);
 		cout << "HDFSmaster listening at port: " << HDFSPORT << endl;
 
 		/* Create chunkserver threads */
-		SimpleHDFSChunkServer chunkServer(6800);
+		SimpleHDFSChunkServer chunkServer("6800");
 		thread chunkServerThread(&SimpleHDFSChunkServer::chunkMain, chunkServer);
+		chunkServers.push_back(chunkServer);
+		Message replyMessage;
+		string replyMessageString;
 
 		//Message Loop
 		while (true) {
@@ -188,6 +234,10 @@ public:
 
 			switch(clientMessage.mtype) {
 				case READ:
+					replyMessage = readFile(clientMessage);
+					replyMessageString = replyMessage.serialize();
+					cout << "replyMessageString=" << replyMessageString << endl;
+					tserver.sendMessage(replyMessage.serialize());
 					break;
 
 				case WRITE:
@@ -203,8 +253,18 @@ public:
 		chunkServerThread.join();
 	}
 
-	void readFile() {
+	SimpleHDFSChunkServer getChunkServer(string fileName) {
+		return chunkServers.at(0);
+	}
 
+	Message readFile(Message requestMessage) {
+		Message replyMessage;
+		SimpleHDFSChunkServer cserver = getChunkServer(requestMessage.fileName);
+
+		replyMessage.mtype = CSDISCOVER;
+		replyMessage.chunkServerHostName = cserver.getChunkServerName();
+		replyMessage.chunkServerPortNum = cserver.getPortNum();
+		return replyMessage;
 	}
 
 	void writeFile() {}

@@ -22,9 +22,6 @@
 
 using namespace std;
 
-//move it to messgae.cc
-const string Message::fieldSeparator = " ";
-
 class TCPClient {
 
 private:
@@ -69,9 +66,13 @@ public:
 			cout << "Read error" << endl;
 			exit(1);
 		}
-		cout << "readMessage returned = " << valread << endl;
+		cout << "readMessage returned = " << valread << "bytes" << endl;
 		string replyString(buffer);
 		return replyString;
+	}
+
+	void closeConnection() {
+		close(sock);
 	}
 
 };
@@ -114,8 +115,21 @@ public:
 		if (replyString.length() == 0) {
 			cout << "Server connection closed." << endl;
 		} else {
-			printReplyString(replyString);
-			cout << "Reply received"   << replyString << endl;
+			//printReplyString(replyString);
+
+			Message msg = Message::deserialize(replyString);
+
+			TCPClient tClientChunkServer;
+
+			tClientChunkServer.connectToServer(msg.chunkServerHostName.c_str(),
+												stoi(msg.chunkServerPortNum));
+
+			tClientChunkServer.sendMessage(s);
+
+			replyString = tClientChunkServer.readMessage();
+			tClientChunkServer.closeConnection();
+
+			cout << "Reply received from chunkServer="   << replyString << endl;
 		}
 	}
 
@@ -136,6 +150,9 @@ public:
 
 				case HELP:
 					Message::printAllMessageTypes();
+					break;
+
+				case LIST:
 					break;
 
 				case UPLOAD:
