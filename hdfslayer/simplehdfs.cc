@@ -59,19 +59,27 @@ public:
 		}
 	}
 
+	void acceptClientConnection() {
+	    int addrlen = sizeof(address);
+        if (listen(server_fd, 3) < 0) {
+            cout << "listen";
+            exit(EXIT_FAILURE);
+        }
+        //cout << "Listening on the socket on port: " << serverportnum << endl;
+        if ((new_socket = accept(server_fd, (struct sockaddr *)&address,
+                           (socklen_t*)&addrlen))<0) {
+            cout << "accept";
+            exit(EXIT_FAILURE);
+        }
+	}
+
 	string getMessage() {
-		int addrlen = sizeof(address);
-		if (listen(server_fd, 3) < 0) {
-			cout << "listen";
-			exit(EXIT_FAILURE);
-		}
-		//cout << "Listening on the socket on port: " << serverportnum << endl;
-		if ((new_socket = accept(server_fd, (struct sockaddr *)&address,
-						   (socklen_t*)&addrlen))<0) {
-			cout << "accept";
-			exit(EXIT_FAILURE);
-		}
-		valread = read(new_socket , buffer, 1024);
+	    valread = read(new_socket , buffer, 1024);
+
+	    if(valread <= 0) {
+	        return "";
+	    }
+
 		string bufferString(buffer);
 		return bufferString;
 	}
@@ -80,13 +88,24 @@ public:
 		send(new_socket , s.c_str() , s.length() , 0 );
 	}
 
+	void closeClientConnection() {
+	    close(new_socket);
+	}
+
 	/* storage formats already encode the data here, all we do is store it as it is received in the
 	 * file
 	 */
 	string getData() {}
 };
 
-class SimpleHDFSChunkServer {
+class Logger {
+public:
+    void log(string str) {
+        cout << str << endl << flush;
+    }
+};
+
+class SimpleHDFSChunkServer: public Logger {
 
 /* Format of metadata:
  *
@@ -121,36 +140,48 @@ public:
 	void chunkMain() {
 		TCPServer tserver;
 		tserver.bindToPort(portNumInt);
-		cout << "Chunkserver listening at port: " << portNum << endl;
 		while(true) {
-			//data transfer loop
-			string str = tserver.getMessage();
-			string originalMessage(str.c_str());
+            log("HDFSChunkServer: Chunkserver accepting connection at port: "
+                 + portNum);
+            tserver.acceptClientConnection();
 
-			//strtok changes the string that it tokenizes
-			Message clientMessage = Message::deserialize(str);
-			clientMessage.printMessage();
+            while(true) {
+                //data transfer loop
+                log("HDFSChunkServer: Waiting for Message in ChunkServer");
+                string str = tserver.getMessage();
+                //end of message
+                if(str.length() == 0) {
+                    log("HDFSChunkServer: Zero length string returned. Terminating client connection. ");
+                    break;
+                }
+                string originalMessage(str.c_str());
 
-			Message replyMessage;
-			string replyMessageString;
+                //strtok changes the string that it tokenizes
+                Message clientMessage = Message::deserialize(str);
+                clientMessage.printMessage();
 
-			switch(clientMessage.mtype) {
-				case READ:
-					replyMessage = readFile(clientMessage);
-					replyMessageString = replyMessage.serialize();
-					cout << "replyMessageString=" << replyMessageString << endl;
-					tserver.sendMessage(replyMessage.serialize());
-					break;
+                Message replyMessage;
+                string replyMessageString;
 
-				case WRITE:
-					break;
+                switch(clientMessage.mtype) {
+                    case READ:
+                        replyMessage = readFile(clientMessage);
+                        replyMessageString = replyMessage.serialize();
+                        log("HDFSChunkServer: replyMessageString=" + replyMessageString);
+                        tserver.sendMessage(replyMessage.serialize());
+                        break;
 
-				case LIST: //this can only happen in Master
-					break;
+                    case WRITE:
+                        break;
 
-				case UPLOAD:
-					break;
-			}
+                    case LIST: //this can only happen in Master
+                        break;
+
+                    case UPLOAD:
+                        break;
+                }
+            }
+            tserver.closeClientConnection();
 		}
 	}
 
@@ -158,7 +189,6 @@ public:
 		Message replyMessage;
 
 		//read the actual file, for now just send the status
-
 		replyMessage.mtype = STATUS;
 		replyMessage.statusString = "ReadMessage called for file: " + requestMessage.fileName;
 		return replyMessage;
@@ -186,7 +216,7 @@ public:
 };
 
 
-class SimpleHDFSMaster {
+class SimpleHDFSMaster: public Logger {
 
 /* Format of hdfs metdata:
  *
@@ -214,7 +244,6 @@ public:
 	void serverMain() {
 		TCPServer tserver;
 		tserver.bindToPort(HDFSPORT);
-		cout << "HDFSmaster listening at port: " << HDFSPORT << endl;
 
 		/* Create chunkserver threads */
 		SimpleHDFSChunkServer chunkServer("6800");
@@ -223,33 +252,49 @@ public:
 		Message replyMessage;
 		string replyMessageString;
 
-		//Message Loop
 		while (true) {
-			string str = tserver.getMessage();
-			string originalMessage(str.c_str());
+            log("HDFSmaster: listening to client connection at port: " + to_string(HDFSPORT));
+            //Currently hdfsmaster only accepts one client connection at a time.
+            //TODO: Add support to accept multiple client connections.
+            tserver.acceptClientConnection();
 
-			//strtok changes the string that it tokenizes
-			Message clientMessage = Message::deserialize(str);
-			clientMessage.printMessage();
+            //Message Loop
+            while (true) {
+                log("HDFSMaster: Waiting for Message in Master");
+                string str = tserver.getMessage();
 
-			switch(clientMessage.mtype) {
-				case READ:
-					replyMessage = readFile(clientMessage);
-					replyMessageString = replyMessage.serialize();
-					cout << "replyMessageString=" << replyMessageString << endl;
-					tserver.sendMessage(replyMessage.serialize());
-					break;
+                if (str.length() == 0) {
+                    log("HDFSMaster: zero length string sent from client connection. Closing.");
+                    break;
+                }
 
-				case WRITE:
-					break;
+                string originalMessage(str.c_str());
 
-				case LIST:
-					break;
+                //strtok changes the string that it tokenizes
+                Message clientMessage = Message::deserialize(str);
+                clientMessage.printMessage();
 
-				case UPLOAD:
-					break;
-			}
+                switch(clientMessage.mtype) {
+                    case READ:
+                        replyMessage = readFile(clientMessage);
+                        replyMessageString = replyMessage.serialize();
+                        log("HDFSMaster: replyMessageString=" + replyMessageString);
+                        tserver.sendMessage(replyMessage.serialize());
+                        break;
+
+                    case WRITE:
+                        break;
+
+                    case LIST:
+                        break;
+
+                    case UPLOAD:
+                        break;
+                }
+            }
+            tserver.closeClientConnection();
 		}
+
 		chunkServerThread.join();
 	}
 
