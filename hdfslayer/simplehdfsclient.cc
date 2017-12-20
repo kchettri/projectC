@@ -7,6 +7,7 @@
 /* C++ headers */
 #include <iostream>
 #include <vector>
+#include <fstream>
 
 /* C headers */
 #include <stdio.h>
@@ -18,6 +19,7 @@
 #include <unistd.h>
 
 /* locals */
+#include "defs.h"
 #include "message.h"
 
 using namespace std;
@@ -56,8 +58,12 @@ public:
 	}
 
 	int sendMessage(string s) {
-		send(sock , s.c_str() , s.length() , 0 );
-		return 0;
+		int sentSize = send(sock , s.c_str() , s.length() , 0 );
+		if (sentSize != s.length()) {
+		    return -1;
+		} else {
+		    return sentSize;
+		}
 	}
 
 	string readMessage() {
@@ -75,6 +81,12 @@ public:
 		close(sock);
 	}
 
+	void sendData(Data d) {
+	   int numbytes = send(sock, d.getDataBuf(), d.length, 0);
+	   if(numbytes <= 0 || numbytes != d.length) {
+	       cout << "Error in sending databuffer, sentbytes=" << numbytes;
+	   }
+	}
 };
 
 class SimpleHDFSClient {
@@ -96,6 +108,13 @@ public:
 		return msg.serialize();
 	}
 
+	string createUploadMessage(string fileName) {
+	    Message msg;
+        msg.mtype = UPLOAD;
+        msg.fileName = fileName;
+        return msg.serialize();
+	}
+
 	void printReplyString(string rString) {
 		Message msg = Message::deserialize(rString);
 		msg.printMessage();
@@ -103,6 +122,42 @@ public:
 
 	void connectToMaster() {
 		tclient.connectToServer("127.0.0.1", 5646);
+	}
+
+	void uploadFile(string fileName) {
+	    string s = createUploadMessage(fileName);
+	    cout << "uploadMessage serialized string ="  << s << endl;
+	    tclient.sendMessage(s);
+
+	    string replyString = tclient.readMessage();
+        if (replyString.length() == 0) {
+            cout << "Server connection closed." << endl;
+        } else {
+            //printReplyString(replyString);
+            Message msg = Message::deserialize(replyString);
+
+            TCPClient tClientChunkServer;
+            tClientChunkServer.connectToServer(msg.chunkServerHostName.c_str(),
+                                               stoi(msg.chunkServerPortNum));
+            if(tClientChunkServer.sendMessage(s) <= 0) { //resend upload message to chunkserver
+                cout << "Error sending UPLOAD message to chunkserver." << endl;
+            }
+
+            Data d;
+            ifstream finput(fileName, ifstream::binary);
+            //read file and send it
+            while(true) {
+                int readLen = finput.read(d.getDataBuf(), d.BLOCK_SIZE);
+                if (readLen <= 0) {
+                    cout << "Finished uploading file";
+                    break;
+                }
+                d.setLength(readLen);
+                tClientChunkServer.sendData(d);
+            }
+            finput.close();
+            tClientChunkServer.closeConnection();
+        }
 	}
 
 	void readFile(string fileName) {
@@ -122,7 +177,7 @@ public:
 			TCPClient tClientChunkServer;
 
 			tClientChunkServer.connectToServer(msg.chunkServerHostName.c_str(),
-												stoi(msg.chunkServerPortNum));
+											   stoi(msg.chunkServerPortNum));
 
 			tClientChunkServer.sendMessage(s);
 

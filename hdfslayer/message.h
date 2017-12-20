@@ -30,7 +30,36 @@ static array<string, 9> messageTypeStringArr {
 	"csdiscover"
 };
 
+class Data {
+private:
+    static const int BLOCK_SIZE;
+    byte* databuf;
+    int length;
 
+public:
+    Data() {
+        databuf = new byte[BLOCK_SIZE];
+        length = 0;
+    }
+
+    unsigned char* getDataBuf() {
+        return databuf;
+    }
+
+    int getLength() {
+        return length;
+    }
+
+    void setLength(int len) {
+        length = len;
+    }
+
+    void freeDataBuf()  {
+        delete[] databuf;
+    }
+};
+
+Data::BLOCK_SIZE = 4096;
 
 /* Message exchanged by client and server */
 class Message {

@@ -9,6 +9,7 @@
 #include <fstream>
 #include <vector>
 #include <thread>
+#include <fstream>
 
 /*
  * C headers
@@ -20,6 +21,7 @@
 #include <unistd.h>
 
 /* locals */
+#include "defs.h"
 #include "message.h"
 
 using namespace std;
@@ -29,7 +31,7 @@ class TCPServer {
 private:
 	int server_fd, new_socket, valread;
 	struct sockaddr_in address;
-	char buffer[1024] = {0};
+	byte buffer[1024] = {0};
 	const char *hello = "Hello from server";
 	int serverportnum;
 
@@ -84,8 +86,8 @@ public:
 		return bufferString;
 	}
 
-	void sendMessage(string s) {
-		send(new_socket , s.c_str() , s.length() , 0 );
+	int sendMessage(string s) {
+		return send(new_socket , s.c_str() , s.length() , 0 );
 	}
 
 	void closeClientConnection() {
@@ -95,7 +97,12 @@ public:
 	/* storage formats already encode the data here, all we do is store it as it is received in the
 	 * file
 	 */
-	string getData() {}
+	Data getData() {
+	   Data d;
+	   valread = read(new_socket , d.getDataBuf(), d.BLOCK_SIZE);
+	   d.setLength(valread);
+       return d;
+	}
 };
 
 class Logger {
@@ -118,6 +125,7 @@ private:
 	string getNewFileName() {}
 	string portNum;
 	int portNumInt;
+	TCPServer tserver;
 
 public:
 
@@ -125,11 +133,15 @@ public:
 		portNum = pnum;
 		portNumInt = stoi(portNum);
 		chunkserverName = "127.0.0.1";
+		tserver.bindToPort(portNumInt);
+
+		chunkroot = "/home/projectC/hdfsroot";
+        chunkdataroot = chunkroot + "/dataroot";
 	}
 
 	void init() {
 		chunkroot = "/home/projectC/hdfsroot";
-		chunkdataroot = chunkroot + "/dataroot";
+		chunkdataroot = chunkroot + "/dataroot/";
 		//metadata file
 		ofstream mfile;
 		mfile.open((chunkroot + "/mfile").c_str());
@@ -138,8 +150,6 @@ public:
 	}
 
 	void chunkMain() {
-		TCPServer tserver;
-		tserver.bindToPort(portNumInt);
 		while(true) {
             log("HDFSChunkServer: Chunkserver accepting connection at port: "
                  + portNum);
@@ -178,11 +188,36 @@ public:
                         break;
 
                     case UPLOAD:
+                        uploadFile(clientMessage.fileName);
                         break;
                 }
             }
             tserver.closeClientConnection();
 		}
+	}
+
+	void sendMessage(Message msg) {
+	    string msgString = msg.serialize();
+        log("HDFSChunkServer: sending Message =" + msgString);
+        tserver.sendMessage(msgString);
+	}
+
+	void uploadFile(string fileName) {
+	    //TODO: send status
+	    // - should send error in case space is not available
+	    // - should send error in case of other conditions
+
+
+        //currently only append to the file;
+        //later support inserts
+        ofstream foutput (chunkdataroot + fileName, ofstream::binary);
+        while(true) {
+            Data d = tserver.getData();
+            if (d.getLength() <= 0) {
+                foutput.write((const char *)d.getDataBuf(), d.getLength());
+            }
+        }
+        foutput.close();
 	}
 
 	Message readFile(Message requestMessage) {
@@ -289,6 +324,10 @@ public:
                         break;
 
                     case UPLOAD:
+                        replyMessage = uploadFile(clientMessage);
+                        replyMessageString = replyMessage.serialize();
+                        log("HDFSMaster: replyMessageString=" + replyMessageString);
+                        tserver.sendMessage(replyMessage.serialize());
                         break;
                 }
             }
@@ -302,14 +341,22 @@ public:
 		return chunkServers.at(0);
 	}
 
-	Message readFile(Message requestMessage) {
-		Message replyMessage;
-		SimpleHDFSChunkServer cserver = getChunkServer(requestMessage.fileName);
+	Message getCSDiscoverMessage(Message requestMessage) {
+	    Message replyMessage;
+        SimpleHDFSChunkServer cserver = getChunkServer(requestMessage.fileName);
 
-		replyMessage.mtype = CSDISCOVER;
-		replyMessage.chunkServerHostName = cserver.getChunkServerName();
-		replyMessage.chunkServerPortNum = cserver.getPortNum();
-		return replyMessage;
+        replyMessage.mtype = CSDISCOVER;
+        replyMessage.chunkServerHostName = cserver.getChunkServerName();
+        replyMessage.chunkServerPortNum = cserver.getPortNum();
+        return replyMessage;
+	}
+
+	Message uploadFile(Message requestMessage) {
+	    return getCSDiscoverMessage(requestMessage);
+	}
+
+	Message readFile(Message requestMessage) {
+	    return getCSDiscoverMessage(requestMessage);
 	}
 
 	void writeFile() {}
