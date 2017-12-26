@@ -82,8 +82,8 @@ public:
 	}
 
 	void sendData(Data d) {
-	   int numbytes = send(sock, d.getDataBuf(), d.length, 0);
-	   if(numbytes <= 0 || numbytes != d.length) {
+	   int numbytes = send(sock, d.getDataBuf(), d.getLength(), 0);
+	   if(numbytes <= 0 || numbytes != d.getLength()) {
 	       cout << "Error in sending databuffer, sentbytes=" << numbytes;
 	   }
 	}
@@ -145,11 +145,13 @@ public:
 
             Data d;
             ifstream finput(fileName, ifstream::binary);
+            int datalength = 10;
             //read file and send it
             while(true) {
-                int readLen = finput.read(d.getDataBuf(), d.BLOCK_SIZE);
+                finput.read((char *)d.getDataBuf(),  Data::BLOCK_SIZE);
+                int readLen = finput.gcount();
                 if (readLen <= 0) {
-                    cout << "Finished uploading file";
+                    cout << "Finished uploading file" << endl;
                     break;
                 }
                 d.setLength(readLen);

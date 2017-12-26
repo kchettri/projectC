@@ -82,7 +82,7 @@ public:
 	        return "";
 	    }
 
-		string bufferString(buffer);
+		string bufferString((const char *)buffer);
 		return bufferString;
 	}
 

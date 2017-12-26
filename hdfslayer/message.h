@@ -32,11 +32,11 @@ static array<string, 9> messageTypeStringArr {
 
 class Data {
 private:
-    static const int BLOCK_SIZE;
     byte* databuf;
     int length;
 
 public:
+    static int BLOCK_SIZE;
     Data() {
         databuf = new byte[BLOCK_SIZE];
         length = 0;
@@ -59,7 +59,7 @@ public:
     }
 };
 
-Data::BLOCK_SIZE = 4096;
+int Data::BLOCK_SIZE = 4096;
 
 /* Message exchanged by client and server */
 class Message {
@@ -182,6 +182,4 @@ public:
 //space because command contains space characters and it is used to deserialize and create Message object
 //space cannot appear in the field values, otherwise it will have error.
 const string Message::fieldSeparator = " ";
-
-
 
