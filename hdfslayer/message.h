@@ -111,7 +111,8 @@ public:
 		} else if (mtype == EXIT) {
 
 		} else if (mtype == UPLOAD) {
-
+		    serialString += fieldSeparator;
+		    serialString += fileName;
 		} else if (mtype == CSDISCOVER) {
 			serialString +=fieldSeparator;
 			serialString +=chunkServerHostName;
@@ -142,7 +143,7 @@ public:
 		} else if (m.mtype == EXIT) {
 
 		} else if (m.mtype == UPLOAD) {
-
+		    m.fileName = tokens.at(0);
 		} else if (m.mtype == CSDISCOVER) {
 			m.chunkServerHostName = tokens.at(0);
 			m.chunkServerPortNum = tokens.at(1);
@@ -161,7 +162,7 @@ public:
 		} else if (mtype == EXIT) {
 
 		} else if (mtype == UPLOAD) {
-
+		    cout << " , " << fileName;
 		} else if (mtype == CSDISCOVER) {
 			cout << " chunkServerHostName=" << chunkServerHostName ;
 			cout << " chunkServerPortNum=" << chunkServerPortNum << endl;

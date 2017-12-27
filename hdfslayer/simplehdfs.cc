@@ -10,6 +10,10 @@
 #include <vector>
 #include <thread>
 #include <fstream>
+#include <sstream>
+
+/* boost headers */
+#include <boost/filesystem.hpp>
 
 /*
  * C headers
@@ -76,9 +80,10 @@ public:
 	}
 
 	string getMessage() {
-	    valread = read(new_socket , buffer, 1024);
+	    valread = read(new_socket, buffer, 1024);
 
 	    if(valread <= 0) {
+	        cout << "TCPServer returned zero length buffer" << endl;
 	        return "";
 	    }
 
@@ -100,15 +105,24 @@ public:
 	Data getData() {
 	   Data d;
 	   valread = read(new_socket , d.getDataBuf(), d.BLOCK_SIZE);
+
+	   cout << "Data read = " << valread << endl;
 	   d.setLength(valread);
        return d;
 	}
 };
 
 class Logger {
+private:
+    string module;
 public:
+    void loginit(string module) {
+        this->module = module;
+    }
     void log(string str) {
-        cout << str << endl << flush;
+        ostringstream strstream;
+        strstream << module << ": " << str << endl;
+        cout << strstream.str() << flush;
     }
 };
 
@@ -132,11 +146,15 @@ public:
 	SimpleHDFSChunkServer(string pnum) {
 		portNum = pnum;
 		portNumInt = stoi(portNum);
+
+		//bind to portNumber here:
 		chunkserverName = "127.0.0.1";
 		tserver.bindToPort(portNumInt);
 
 		chunkroot = "/home/projectC/hdfsroot";
         chunkdataroot = chunkroot + "/dataroot";
+
+        loginit("ChunkServer");
 	}
 
 	void init() {
@@ -150,50 +168,58 @@ public:
 	}
 
 	void chunkMain() {
+	    /*
+	     *  Listen for connection.
+	     *  - Accept connection from client, these connections are redirected from master.
+	     *  - Client always goes to master first to see which chunkserver to connect to.
+	     *  - After a connection is accepted, see what message it is requesting.
+	     *  - Based on that message, do the processing.
+	     */
 		while(true) {
             log("HDFSChunkServer: Chunkserver accepting connection at port: "
                  + portNum);
             tserver.acceptClientConnection();
 
-            while(true) {
-                //data transfer loop
-                log("HDFSChunkServer: Waiting for Message in ChunkServer");
-                string str = tserver.getMessage();
-                //end of message
-                if(str.length() == 0) {
-                    log("HDFSChunkServer: Zero length string returned. Terminating client connection. ");
+            //data transfer loop
+            log("HDFSChunkServer: Waiting for Message in ChunkServer");
+            string str = tserver.getMessage();
+            cout << "ChunkServer: message string received ="  << str << endl;
+            //end of message
+            if(str.length() == 0) {
+                log("HDFSChunkServer: Zero length string returned. Terminating client connection. ");
+                //break;
+            }
+            string originalMessage(str.c_str());
+
+            //strtok changes the string that it tokenizes
+            Message clientMessage = Message::deserialize(str);
+            clientMessage.printMessage();
+
+            Message replyMessage;
+            string replyMessageString;
+
+            switch(clientMessage.mtype) {
+                case READ:
+                    replyMessage = readFile(clientMessage);
+                    replyMessageString = replyMessage.serialize();
+                    log("HDFSChunkServer: replyMessageString=" + replyMessageString);
+                    tserver.sendMessage(replyMessage.serialize());
                     break;
-                }
-                string originalMessage(str.c_str());
 
-                //strtok changes the string that it tokenizes
-                Message clientMessage = Message::deserialize(str);
-                clientMessage.printMessage();
+                case WRITE:
+                    break;
 
-                Message replyMessage;
-                string replyMessageString;
+                case LIST: //this can only happen in Master
+                    break;
 
-                switch(clientMessage.mtype) {
-                    case READ:
-                        replyMessage = readFile(clientMessage);
-                        replyMessageString = replyMessage.serialize();
-                        log("HDFSChunkServer: replyMessageString=" + replyMessageString);
-                        tserver.sendMessage(replyMessage.serialize());
-                        break;
-
-                    case WRITE:
-                        break;
-
-                    case LIST: //this can only happen in Master
-                        break;
-
-                    case UPLOAD:
-                        uploadFile(clientMessage.fileName);
-                        break;
-                }
+                case UPLOAD:
+                    uploadFile(clientMessage.fileName);
+                    break;
             }
             tserver.closeClientConnection();
+            log("Chunkserver: Finished serving client message: " + str);
 		}
+		cout << "Chunkserver: end of thread." << endl;
 	}
 
 	void sendMessage(Message msg) {
@@ -202,19 +228,31 @@ public:
         tserver.sendMessage(msgString);
 	}
 
+	void createFolderTree(string fullFilePath) {
+	    boost::filesystem::path p(fullFilePath.c_str());
+	    boost::filesystem::path dir = p.parent_path();
+	    boost::filesystem::create_directories(dir); //fullFilePath.c_str()); //folderTreeString);
+	}
+
 	void uploadFile(string fileName) {
 	    //TODO: send status
 	    // - should send error in case space is not available
 	    // - should send error in case of other conditions
 
-
+	    cout << "Chunkserver: uploadFile called for fileName=" << fileName << endl;
         //currently only append to the file;
         //later support inserts
+	    cout << "Creating folder tree for " << (chunkdataroot + fileName) << endl;
+	    createFolderTree(chunkdataroot + fileName);
         ofstream foutput (chunkdataroot + fileName, ofstream::binary);
-        while(true) {
+        cout << "Chunkserver: output filename= " << (chunkdataroot + fileName) << endl;
+        //while(true)
+        for (int i=0; i < 3; i ++) { //loop only 3 times
             Data d = tserver.getData();
-            if (d.getLength() <= 0) {
+            if (d.getLength() > 0) {
                 foutput.write((const char *)d.getDataBuf(), d.getLength());
+            } else {
+                break;
             }
         }
         foutput.close();
@@ -274,6 +312,8 @@ public:
 		mfile << "Init text";
 		mfile.close();
 		chunkservers.push_back("localhost");
+
+		loginit("HDFSMaster");
 	}
 
 	void serverMain() {

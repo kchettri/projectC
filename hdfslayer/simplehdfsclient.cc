@@ -143,9 +143,13 @@ public:
                 cout << "Error sending UPLOAD message to chunkserver." << endl;
             }
 
+            cout << "Sent message= " << s << endl;
+            cout << " Connected to server: " << msg.chunkServerHostName.c_str()
+                 << " portNum:" << msg.chunkServerPortNum << endl;
+
             Data d;
             ifstream finput(fileName, ifstream::binary);
-            int datalength = 10;
+
             //read file and send it
             while(true) {
                 finput.read((char *)d.getDataBuf(),  Data::BLOCK_SIZE);
@@ -154,6 +158,7 @@ public:
                     cout << "Finished uploading file" << endl;
                     break;
                 }
+                cout << "Read file:" << fileName << " length=" << readLen << endl;
                 d.setLength(readLen);
                 tClientChunkServer.sendData(d);
             }
@@ -214,6 +219,8 @@ public:
 
 				case UPLOAD:
 					//get chunkserver address and upload to chunkserver
+				    cout << "UPloading file: "  << msgObj.fileName << endl;
+				    uploadFile(msgObj.fileName);
 					break;
 
 				case EXIT:
