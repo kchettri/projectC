@@ -94,24 +94,31 @@ private:
 	TCPClient tclient;
 
 public:
-	string createReadMessage(string fileName) {
+	string createReadMessage(string remoteFileName) {
 		Message msg;
 		msg.mtype = READ;
-		msg.fileName = fileName;
+		msg.remoteFileName = remoteFileName;
 		return msg.serialize();
 	}
 
-	string createWriteMessage(string fileName) {
+	string createWriteMessage(string remoteFileName) {
 		Message msg;
 		msg.mtype = WRITE;
-		msg.fileName = fileName;
+		msg.remoteFileName = remoteFileName;
 		return msg.serialize();
 	}
 
-	string createUploadMessage(string fileName) {
+	string createUploadMessage(string remoteFileName) {
 	    Message msg;
         msg.mtype = UPLOAD;
-        msg.fileName = fileName;
+        msg.remoteFileName = remoteFileName;
+        return msg.serialize();
+	}
+
+	string createDownloadMessage(string remoteFileName) {
+        Message msg;
+        msg.mtype = DOWNLOAD;
+        msg.remoteFileName = remoteFileName;
         return msg.serialize();
 	}
 
@@ -124,8 +131,8 @@ public:
 		tclient.connectToServer("127.0.0.1", 5646);
 	}
 
-	void uploadFile(string fileName) {
-	    string s = createUploadMessage(fileName);
+	void uploadFile(string remoteFileName) {
+	    string s = createUploadMessage(remoteFileName);
 	    cout << "uploadMessage serialized string ="  << s << endl;
 	    tclient.sendMessage(s);
 
@@ -148,7 +155,7 @@ public:
                  << " portNum:" << msg.chunkServerPortNum << endl;
 
             Data d;
-            ifstream finput(fileName, ifstream::binary);
+            ifstream finput(remoteFileName, ifstream::binary);
 
             //read file and send it
             while(true) {
@@ -158,7 +165,7 @@ public:
                     cout << "Finished uploading file" << endl;
                     break;
                 }
-                cout << "Read file:" << fileName << " length=" << readLen << endl;
+                cout << "Read file:" << remoteFileName << " length=" << readLen << endl;
                 d.setLength(readLen);
                 tClientChunkServer.sendData(d);
             }
@@ -167,8 +174,43 @@ public:
         }
 	}
 
-	void readFile(string fileName) {
-		string s = createReadMessage(fileName);
+	void downloadFile(string remoteFileName) {
+	    string s = createDownloadMessage(remoteFileName);
+        cout << "downloadMessage serialized string ="  << s << endl;
+        tclient.sendMessage(s);
+
+        string replyString = tclient.readMessage();
+        if (replyString.length() == 0) {
+            cout << "Server connection closed." << endl;
+        } else {
+            // connection to chunkserver is created and then terminated
+            // after download is complete
+            //printReplyString(replyString);
+            Message msg = Message::deserialize(replyString);
+
+            TCPClient tClientChunkServer;
+            tClientChunkServer.connectToServer(msg.chunkServerHostName.c_str(),
+                                               stoi(msg.chunkServerPortNum));
+            if(tClientChunkServer.sendMessage(s) <= 0) { //resend download message to chunkserver
+                cout << "Error sending DOWNLOAD message to chunkserver." << endl;
+            }
+
+            cout << "Sent message= " << s << endl;
+            cout << " Connected to server: " << msg.chunkServerHostName.c_str()
+                 << " portNum:" << msg.chunkServerPortNum << endl;
+
+            /* Download data  */
+            while(true) {
+
+
+            }
+
+            tClientChunkServer.closeConnection();
+        }
+	}
+
+	void readFile(string remoteFileName) {
+		string s = createReadMessage(remoteFileName);
 		cout << "serialized string =" << s << endl;
 		tclient.sendMessage(s);
 		cout << "File READ message sent" << endl;
@@ -207,7 +249,7 @@ public:
 
 			switch(msgObj.mtype) {
 				case READ:
-					readFile(msgObj.fileName);
+					readFile(msgObj.remoteFileName);
 					break;
 
 				case HELP:
@@ -219,9 +261,14 @@ public:
 
 				case UPLOAD:
 					//get chunkserver address and upload to chunkserver
-				    cout << "UPloading file: "  << msgObj.fileName << endl;
-				    uploadFile(msgObj.fileName);
+				    cout << "UPloading file: "  << msgObj.remoteFileName << endl;
+				    uploadFile(msgObj.remoteFileName);
 					break;
+
+				case DOWNLOAD:
+				    cout << "Downloading file: "  << msgObj.remoteFileName << endl;
+                    downloadFile(msgObj.remoteFileName);
+                    break;
 
 				case EXIT:
 					exit(0);

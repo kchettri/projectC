@@ -15,10 +15,11 @@ enum MessageType {
 	EXIT,
 	HELP,
 	UPLOAD,
+	DOWNLOAD,
 	CSDISCOVER
 };
 
-static array<string, 9> messageTypeStringArr {
+static array<string, 10> messageTypeStringArr {
 	"read",
 	"write",
 	"status",
@@ -27,6 +28,7 @@ static array<string, 9> messageTypeStringArr {
 	"exit",
 	"help",
 	"upload",
+	"download",
 	"csdiscover"
 };
 
@@ -68,7 +70,9 @@ private:
 	int serialsize;
 public:
 	MessageType mtype;
-	string fileName;
+	string remoteFileName; /* remote fileName*/
+	string localFileName;  /* local fileName*/
+
 	string statusString;
 	string messageInString;
 	string chunkServerHostName;
@@ -102,7 +106,7 @@ public:
 
 		if(mtype == READ || mtype == WRITE) {
 			serialString +=fieldSeparator;
-			serialString +=fileName;
+			serialString +=remoteFileName;
 		} else if (mtype == STATUS) {
 			serialString +=fieldSeparator;
 			serialString +=statusString;
@@ -112,8 +116,11 @@ public:
 
 		} else if (mtype == UPLOAD) {
 		    serialString += fieldSeparator;
-		    serialString += fileName;
-		} else if (mtype == CSDISCOVER) {
+		    serialString += remoteFileName;
+		} else if (mtype == DOWNLOAD) {
+            serialString += fieldSeparator;
+            serialString += remoteFileName;
+        } else if (mtype == CSDISCOVER) {
 			serialString +=fieldSeparator;
 			serialString +=chunkServerHostName;
 			serialString +=fieldSeparator;
@@ -135,7 +142,7 @@ public:
 		}
 
 		if (m.mtype == READ || m.mtype == WRITE) {
-			m.fileName = tokens.at(0);
+			m.remoteFileName = tokens.at(0);
 		} else  if (m.mtype == STATUS) {
 			m.statusString = tokens.at(0);
 		} else if (m.mtype == LIST) {
@@ -143,7 +150,10 @@ public:
 		} else if (m.mtype == EXIT) {
 
 		} else if (m.mtype == UPLOAD) {
-		    m.fileName = tokens.at(0);
+		    m.remoteFileName = tokens.at(0);
+		} else if (m.mtype == DOWNLOAD) {
+            m.remoteFileName = tokens.at(0);
+            m.localFileName = tokens.at(1);
 		} else if (m.mtype == CSDISCOVER) {
 			m.chunkServerHostName = tokens.at(0);
 			m.chunkServerPortNum = tokens.at(1);
@@ -154,7 +164,7 @@ public:
 	void printMessage() {
 		cout << "MessageType: " << getMessageTypeString(mtype);
 		if (mtype == READ || mtype == WRITE) {
-			cout << ", " << fileName << endl;
+			cout << ", " << remoteFileName << endl;
 		} else  if (mtype == STATUS) {
 			cout << ", " << statusString << endl;
 		} else if (mtype == LIST) {
@@ -162,8 +172,10 @@ public:
 		} else if (mtype == EXIT) {
 
 		} else if (mtype == UPLOAD) {
-		    cout << " , " << fileName;
-		} else if (mtype == CSDISCOVER) {
+		    cout << " , " << remoteFileName;
+		} else if (mtype == DOWNLOAD) {
+            cout << " , " << remoteFileName;
+        } else if (mtype == CSDISCOVER) {
 			cout << " chunkServerHostName=" << chunkServerHostName ;
 			cout << " chunkServerPortNum=" << chunkServerPortNum << endl;
 		}

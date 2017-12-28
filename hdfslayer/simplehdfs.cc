@@ -130,7 +130,7 @@ class SimpleHDFSChunkServer: public Logger {
 
 /* Format of metadata:
  *
- *	filename | chunkid | localfilename
+ *	remoteFileName | chunkid | localfilename
  */
 private:
 	string chunkserverName;
@@ -213,7 +213,7 @@ public:
                     break;
 
                 case UPLOAD:
-                    uploadFile(clientMessage.fileName);
+                    uploadFile(clientMessage.remoteFileName);
                     break;
             }
             tserver.closeClientConnection();
@@ -234,18 +234,18 @@ public:
 	    boost::filesystem::create_directories(dir); //fullFilePath.c_str()); //folderTreeString);
 	}
 
-	void uploadFile(string fileName) {
+	void uploadFile(string remoteFileName) {
 	    //TODO: send status
 	    // - should send error in case space is not available
 	    // - should send error in case of other conditions
 
-	    cout << "Chunkserver: uploadFile called for fileName=" << fileName << endl;
+	    cout << "Chunkserver: uploadFile called for remoteFileName=" << remoteFileName << endl;
         //currently only append to the file;
         //later support inserts
-	    cout << "Creating folder tree for " << (chunkdataroot + fileName) << endl;
-	    createFolderTree(chunkdataroot + fileName);
-        ofstream foutput (chunkdataroot + fileName, ofstream::binary);
-        cout << "Chunkserver: output filename= " << (chunkdataroot + fileName) << endl;
+	    cout << "Creating folder tree for " << (chunkdataroot + remoteFileName) << endl;
+	    createFolderTree(chunkdataroot + remoteFileName);
+        ofstream foutput (chunkdataroot + remoteFileName, ofstream::binary);
+        cout << "Chunkserver: output remoteFileName= " << (chunkdataroot + remoteFileName) << endl;
         //while(true)
         for (int i=0; i < 3; i ++) { //loop only 3 times
             Data d = tserver.getData();
@@ -263,7 +263,7 @@ public:
 
 		//read the actual file, for now just send the status
 		replyMessage.mtype = STATUS;
-		replyMessage.statusString = "ReadMessage called for file: " + requestMessage.fileName;
+		replyMessage.statusString = "ReadMessage called for file: " + requestMessage.remoteFileName;
 		return replyMessage;
 	}
 
@@ -293,7 +293,7 @@ class SimpleHDFSMaster: public Logger {
 
 /* Format of hdfs metdata:
  *
- *  filename | filepath | chunkid | chunkserver
+ *  remoteFileName | filepath | chunkid | chunkserver
  */
 
 private:
@@ -377,13 +377,13 @@ public:
 		chunkServerThread.join();
 	}
 
-	SimpleHDFSChunkServer getChunkServer(string fileName) {
+	SimpleHDFSChunkServer getChunkServer(string remoteFileName) {
 		return chunkServers.at(0);
 	}
 
 	Message getCSDiscoverMessage(Message requestMessage) {
 	    Message replyMessage;
-        SimpleHDFSChunkServer cserver = getChunkServer(requestMessage.fileName);
+        SimpleHDFSChunkServer cserver = getChunkServer(requestMessage.remoteFileName);
 
         replyMessage.mtype = CSDISCOVER;
         replyMessage.chunkServerHostName = cserver.getChunkServerName();
