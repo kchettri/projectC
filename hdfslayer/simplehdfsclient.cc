@@ -115,10 +115,11 @@ public:
         return msg.serialize();
 	}
 
-	string createDownloadMessage(string remoteFileName) {
+	string createDownloadMessage(string remoteFileName, string localFileName) {
         Message msg;
         msg.mtype = DOWNLOAD;
         msg.remoteFileName = remoteFileName;
+        msg.localFileName = localFileName;
         return msg.serialize();
 	}
 
@@ -174,8 +175,8 @@ public:
         }
 	}
 
-	void downloadFile(string remoteFileName) {
-	    string s = createDownloadMessage(remoteFileName);
+	void downloadFile(string remoteFileName, string localFileName) {
+	    string s = createDownloadMessage(remoteFileName, localFileName);
         cout << "downloadMessage serialized string ="  << s << endl;
         tclient.sendMessage(s);
 
@@ -201,8 +202,7 @@ public:
 
             /* Download data  */
             while(true) {
-
-
+                break;
             }
 
             tClientChunkServer.closeConnection();
@@ -267,7 +267,7 @@ public:
 
 				case DOWNLOAD:
 				    cout << "Downloading file: "  << msgObj.remoteFileName << endl;
-                    downloadFile(msgObj.remoteFileName);
+                    downloadFile(msgObj.remoteFileName, msgObj.localFileName);
                     break;
 
 				case EXIT:

@@ -1,4 +1,6 @@
 /*
+ * Copyright
+ *
  * simplehdfs.cc
  *
  *  Simple HDFS server.
@@ -212,6 +214,10 @@ public:
                 case LIST: //this can only happen in Master
                     break;
 
+                case DOWNLOAD:
+                    downloadFile(clientMessage.remoteFileName);
+                    break;
+
                 case UPLOAD:
                     uploadFile(clientMessage.remoteFileName);
                     break;
@@ -256,6 +262,10 @@ public:
             }
         }
         foutput.close();
+	}
+
+	void downloadFile(string remoteFileName) {
+	    cout <<"Chunkserver: Download called for " << remoteFileName << endl;
 	}
 
 	Message readFile(Message requestMessage) {
@@ -351,7 +361,9 @@ public:
 
                 switch(clientMessage.mtype) {
                     case READ:
-                        replyMessage = readFile(clientMessage);
+                    case UPLOAD:
+                    case DOWNLOAD:
+                        replyMessage = getCSDiscoverMessage(clientMessage);  //readFile(clientMessage);
                         replyMessageString = replyMessage.serialize();
                         log("HDFSMaster: replyMessageString=" + replyMessageString);
                         tserver.sendMessage(replyMessage.serialize());
@@ -362,22 +374,17 @@ public:
 
                     case LIST:
                         break;
-
-                    case UPLOAD:
-                        replyMessage = uploadFile(clientMessage);
-                        replyMessageString = replyMessage.serialize();
-                        log("HDFSMaster: replyMessageString=" + replyMessageString);
-                        tserver.sendMessage(replyMessage.serialize());
-                        break;
                 }
             }
             tserver.closeClientConnection();
 		}
-
 		chunkServerThread.join();
 	}
 
 	SimpleHDFSChunkServer getChunkServer(string remoteFileName) {
+	    /*
+	     * Find the right chunkserver instead of returning just the one right now.
+	     */
 		return chunkServers.at(0);
 	}
 
@@ -385,22 +392,22 @@ public:
 	    Message replyMessage;
         SimpleHDFSChunkServer cserver = getChunkServer(requestMessage.remoteFileName);
 
+        /* chunkserver discover will involve identifying the right chunk servers
+         * among all the ones available.
+         */
+        switch(requestMessage.mtype) {
+            case UPLOAD:
+                break;
+
+            case DOWNLOAD:
+                break;
+        }
+
         replyMessage.mtype = CSDISCOVER;
         replyMessage.chunkServerHostName = cserver.getChunkServerName();
         replyMessage.chunkServerPortNum = cserver.getPortNum();
         return replyMessage;
 	}
-
-	Message uploadFile(Message requestMessage) {
-	    return getCSDiscoverMessage(requestMessage);
-	}
-
-	Message readFile(Message requestMessage) {
-	    return getCSDiscoverMessage(requestMessage);
-	}
-
-	void writeFile() {}
-
 };
 
 int  main() {

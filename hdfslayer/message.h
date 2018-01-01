@@ -120,6 +120,8 @@ public:
 		} else if (mtype == DOWNLOAD) {
             serialString += fieldSeparator;
             serialString += remoteFileName;
+            serialString += fieldSeparator;
+            serialString += localFileName;
         } else if (mtype == CSDISCOVER) {
 			serialString +=fieldSeparator;
 			serialString +=chunkServerHostName;
@@ -187,6 +189,7 @@ public:
 			 << " read <filename>" << endl
 			 << " write <filename>" << endl
 			 << " upload <localfilename> <remote filename>" << endl
+			 << " download <remotefilename> <local filename>" << endl
 			 << " list" << endl << endl;
 	}
 };
