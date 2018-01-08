@@ -5,19 +5,17 @@
  *      Author: kamal
  */
 
-class Logger {
-private:
-    string module;
-public:
-    void loginit(string module) {
-        this->module = module;
-    }
-    void log(string str) {
-        ostringstream strstream;
-        strstream << module << ": " << str << endl;
-        cout << strstream.str() << flush;
-    }
-};
+using namespace std;
 
+/* locals */
+#include "logger.h"
 
+void Logger::loginit(string module) {
+    this->module = module;
+}
+void Logger::log(string str) {
+    ostringstream strstream;
+    strstream << module << ": " << str << endl;
+    cout << strstream.str() << flush;
+}
 
