@@ -1,8 +1,6 @@
 /*
  * chunkserver.cc
  *
- *  Created on: Jan 2, 2018
- *      Author: kamal
  */
 
 class SimpleHDFSChunkServer: public Logger {
