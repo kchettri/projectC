@@ -15,6 +15,8 @@
 #include <string.h>
 #include <unistd.h>
 
+/* C++ headers */
+#include <iostream>
 
 /* locals */
 #include "tcpserver.h"

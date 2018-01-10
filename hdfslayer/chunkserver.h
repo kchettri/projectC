@@ -6,9 +6,15 @@
 #ifndef CHUNKSERVER_H_
 #define CHUNKSERVER_H_
 
-#include "logger.h"
+/* C++ */
+#include <string>
 
-class SimpleHDFSChunkServer: public Logger {
+/* locals */
+#include "logger.h"
+#include "tcpserver.h"
+#include "message.h"
+
+class ChunkServer: public Logger {
 
 /* Format of metadata:
  *
@@ -24,7 +30,7 @@ private:
     TCPServer tserver;
 
 public:
-    SimpleHDFSChunkServer(std::string pnum);
+    ChunkServer(std::string pnum);
     void init();
     void chunkMain();
     void sendMessage(Message msg);

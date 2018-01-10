@@ -1,14 +1,17 @@
 /*
- * logger.cc
+ * Copyright
+ *  logger.cc
  *
- *  Created on: Jan 2, 2018
- *      Author: kamal
  */
 
-using namespace std;
+/* C++ header */
+#include <iostream>
+#include <sstream>
 
 /* locals */
 #include "logger.h"
+
+using namespace std;
 
 void Logger::loginit(string module) {
     this->module = module;

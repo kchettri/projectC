@@ -1,16 +1,42 @@
-all: bin/simplehdfs bin/simplehdfsclient
+##
+## Common makefile for master, chunkserver, and client
+##
+##
 
-simplehdfs.o: simplehdfs.cc message.h
-	g++ -std=c++11 -pthread -c simplehdfs.cc
+LDFLAGS = -lpthread -lboost_system -lboost_filesystem -std=c++11
+CFLAGS = -std=c++11
+INCLUDE = -I.
 
-bin/simplehdfs: simplehdfs.o
-	g++ -o bin/simplehdfs simplehdfs.o -pthread -lboost_system -lboost_filesystem
+COMMONSRCS = message.cc
+COMMONOBJS = $(COMMONSRCS:.cc=.o)
 
-simplehdfsclient.o: simplehdfsclient.cc message.h
-	g++ -std=c++11 -c simplehdfsclient.cc
+CHUNKSERVER = bin/chunkserver
+CHUNKSRCS = chunkserver.cc
+CHUNKDEPS = ## Add headers
+CHUNKOBJS = $(CHUNKSRCS:.cc=.o)
 
-bin/simplehdfsclient: simplehdfsclient.o
-	g++ -o bin/simplehdfsclient simplehdfsclient.o -lboost_system
+MASTER = bin/master
+MASTERSRCS = master.cc tcpserver.cc logger.cc ${CHUNKSRCS}
+MASTERDEPS = ## Add headers
+MASTEROBJS = $(MASTERSRCS:.cc=.o) 
+
+CLIENT = bin/simplehdfsclient 
+CLIENTSRCS = simplehdfsclient.cc
+CLIENTDEPS = ## Add headers
+CLIENTOBJS = $(CLIENTSRCS:.cc=.o)
+
+
+all: $(MASTER) $(CLIENT) 
+
+%.o: %.cc
+	g++ -c -o $@ $< $(CFLAGS) $(INCLUDE)
+
+$(MASTER): $(MASTEROBJS) $(COMMONOBJS)
+	g++ -o $@ $^ $(LDFLAGS)
+
+$(CLIENT): $(CLIENTOBJS) $(COMMONOBJS)
+	g++ -o $@ $^ $(LDFLAGS)	
 
 clean: 
-	rm bin/simplehdfs bin/simplehdfsclient
+	rm $(MASTER) $(CLIENT) $(MASTEROBJS) $(CLIENTOBJS) $(COMMONOBJS)
+

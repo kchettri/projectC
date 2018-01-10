@@ -1,9 +1,7 @@
 /*
  * Copyright
- *
- * simplehdfs.cc
- *
- *  Simple HDFS server.
+ *  master.cc
+ * Simple HDFS server master.
  */
 
 /* C++ header */
@@ -11,39 +9,37 @@
 #include <fstream>
 #include <vector>
 #include <thread>
-#include <fstream>
 #include <sstream>
 
 /* boost headers */
 #include <boost/filesystem.hpp>
 
-/*
- * C headers
- */
-#include <sys/socket.h>
-#include <stdlib.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <unistd.h>
+/* C headers */
+//#include <sys/socket.h>
+//#include <stdlib.h>
+//#include <netinet/in.h>
+//#include <string.h>
+//#include <unistd.h>
 
 /* locals */
 #include "defs.h"
 #include "message.h"
+#include "logger.h"
+#include "tcpserver.h"
+#include "chunkserver.h"
 
 using namespace std;
 
-class SimpleHDFSMaster: public Logger {
+class Master: public Logger {
 
 /* Format of hdfs metdata:
- *
- *  remoteFileName | filepath | chunkid | chunkserver
+ * remoteFileName | filepath | chunkid | chunkserver
  */
-
 private:
 	vector<string> chunkservers;
 	string hdfsroot, dataroot;
 	const int HDFSPORT = 5646;
-	vector<SimpleHDFSChunkServer> chunkServers;
+	vector<ChunkServer> chunkServers;
 
 public:
 	void init() {
@@ -64,8 +60,8 @@ public:
 		tserver.bindToPort(HDFSPORT);
 
 		/* Create chunkserver threads */
-		SimpleHDFSChunkServer chunkServer("6800");
-		thread chunkServerThread(&SimpleHDFSChunkServer::chunkMain, chunkServer);
+		ChunkServer chunkServer("6800");
+		thread chunkServerThread(&ChunkServer::chunkMain, chunkServer);
 		chunkServers.push_back(chunkServer);
 		Message replyMessage;
 		string replyMessageString;
@@ -114,7 +110,7 @@ public:
 		chunkServerThread.join();
 	}
 
-	SimpleHDFSChunkServer getChunkServer(string remoteFileName) {
+	ChunkServer getChunkServer(string remoteFileName) {
 	    /*
 	     * Find the right chunkserver instead of returning just the one right now.
 	     */
@@ -123,7 +119,7 @@ public:
 
 	Message getCSDiscoverMessage(Message requestMessage) {
 	    Message replyMessage;
-        SimpleHDFSChunkServer cserver = getChunkServer(requestMessage.remoteFileName);
+        ChunkServer cserver = getChunkServer(requestMessage.remoteFileName);
 
         /* chunkserver discover will involve identifying the right chunk servers
          * among all the ones available.
@@ -144,7 +140,7 @@ public:
 };
 
 int  main() {
-	SimpleHDFSMaster shdfsmaster;
+	Master shdfsmaster;
 	shdfsmaster.init();
 	shdfsmaster.serverMain();
 	return 0;

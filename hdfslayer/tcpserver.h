@@ -6,6 +6,19 @@
 #ifndef TCPSERVER_H_
 #define TCPSERVER_H_
 
+/* C++ header */
+#include <string>
+
+/* C headers */
+#include <sys/socket.h>
+#include <stdlib.h>
+#include <netinet/in.h>
+
+
+/* locals */
+#include <defs.h>  // for byte
+#include <message.h> //for Data
+
 class TCPServer {
 
 private:
