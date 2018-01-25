@@ -8,7 +8,7 @@
 #define DEFS_H_
 
 typedef unsigned char byte;
-
+typedef long long long64;
 
 
 #endif /* DEFS_H_ */
