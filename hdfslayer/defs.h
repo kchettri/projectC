@@ -10,5 +10,6 @@
 typedef unsigned char byte;
 typedef long long long64;
 
+long64 getCurrentTime();
 
 #endif /* DEFS_H_ */

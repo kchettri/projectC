@@ -110,54 +110,107 @@
 #include "defs.h"
 
 /* C++ */
-#include <string>
+//#include <string>
 #include <vector>
 #include <iostream> 
 #include <fstream>
+#include <chrono>
 
 using namespace std;
 
-class Diff {
+class SimpleReader {
+private: 
+    ifstream readerStreamObj; 
+public:
+    void init();
+    void readByte(byte* b); 
+    void readInt(int* a);
+    void readLong64(long64* l);
+    FSImage readFSImage();
+    void close();
+};
+
+class SimpleWriter {
+private: 
+    ofstream writerStreamObj;
+public: 
+    SimpleWriter();
+    void init();
+    void writeByte(byte b); 
+    void writeInt(int a);
+    void writeLong64(long64 l);
+    void close();
+    void writeFSImage(FSImage fsImgageObj);
+};
+
+class ObjectIO {
+public: 
+    virtual void writeObj(SimpleWriter writerObj) = 0; 
+    virtual void readObj(SimpleReader readerObj) = 0; 
+    virtual void printObj() = 0; 
+} 
+
+class Diff : public ObjectIO {
 public:
     int createdListSize; 
     int deletedListSize; 
+
+    void writerObj(SimpleWriter writerObj) {}
+    void readObj(SimpleReader readerObj) {}
+    void printObj() {}
 };
 
-class FileDiff {
+class FileDiff : public ObjectIO {
 public:
-    string snapshotFullPath; //full path of the root of the associated Snapshot: short + byte[],
+    char* snapshotFullPath; //full path of the root of the associated Snapshot: short + byte[],
     long64 fileSize; 
     byte snapshotINodeIsNotNull;
     //INodeFile snapshotINode; 
     Diff df; 
+
+    void writerObj(SimpleWriter writerObj) {}
+    void readObj(SimpleReader readerObj) {}
+    void printObj() {}
 };
 
-class BlockInfo {
+class BlockInfo : public ObjectIO {
 public:
     long64 blockId;
     long64 numBytes;
     long64 generationStamp; 
+
+    void writerObj(SimpleWriter writerObj) {}
+    void readObj(SimpleReader readerObj) {}
+    void printObj() {}
 };
 
 
-class PermissionStatus {
+class PermissionStatus : public ObjectIO{
 public:
+
+    void writerObj(SimpleWriter writerObj) {}
+    void readObj(SimpleReader readerObj) {}
+    void printObj() {}
 };
 
-class INodeFile {
+class INodeFile : public ObjectIO {
 public: 
     vector<BlockInfo> blkInfos;
     vector<FileDiff> fdiffs;
     byte isInNodeFileUnderConstructionSnapshot; 
-    string clientName; 
-    string clientMachine; //{clientName: short + byte[], clientMachine: short + byte[]} (when
+    char* clientName; 
+    char* clientMachine; //{clientName: short + byte[], clientMachine: short + byte[]} (when
 			  // isINodeFileUnderConstructionSnapshot is true),
     int fsPermission; 
     PermissionStatus permStatus; 
+
+    void writerObj(SimpleWriter writerObj) {}
+    void readObj(SimpleReader readerObj) {}
+    void printObj() {}
 };
 
 
-class INodeDirectory {
+class INodeDirectory : public ObjectIO {
 public:
     long64 nsQuota; 
     long64 dsQuota;
@@ -165,26 +218,38 @@ public:
     byte isINodeWithSnapshot; // if isINodeSnapshottable is false
     int fsPermission; //short fsPermission
     PermissionStatus permStatus; 
+
+    void writerObj(SimpleWriter writerObj) {}
+    void readObj(SimpleReader readerObj) {}
+    void printObj() {}
 };
 
-class DirectoryDiff {
+class DirectoryDiff : public ObjectIO {
 public:
-    string rootAssociatedSnapshot; //short + byte[]
+    char* rootAssociatedSnapshot; //short + byte[]
     int childrenSize;
     byte isSnapshotRoot;
     byte snapshotINodeIsNotNull; //when isSnapshotRoot is false
     INodeDirectory snapshotINode; //when snapshotINodeIsNotNull is true
     Diff df;
+
+    void writerObj(SimpleWriter writerObj) {}
+    void readObj(SimpleReader readerObj) {}
+    void printObj() {}
 };
 
-class INodeSymLink {
+class INodeSymLink : public ObjectIO {
 public: 
-    string symlinkString; 
+    char* symlinkString; 
     int fsPermission; //short 
     PermissionStatus permStatus; 
+
+    void writerObj(SimpleWriter writerObj) {}
+    void readObj(SimpleReader readerObj) {}
+    void printObj() {}
 };
 
-class INodeInfo {
+class INodeInfo : public ObjectIO {
 public: 
     byte* fullPath; 
     int replicationFactor; 
@@ -195,14 +260,22 @@ public:
     INodeDirectory inodeDir; 
     INodeSymLink inodeSym; 
     INodeFile inodeFile; 
+
+    void writerObj(SimpleWriter writerObj) {}
+    void readObj(SimpleReader readerObj) {}
+    void printObj() {}
 }; 
 
-class INodeDirectoryInfo {
+class INodeDirectoryInfo : public ObjectIO {
 public: 
+
+    void writerObj(SimpleWriter writerObj) {}
+    void readObj(SimpleReader readerObj) {}
+    void printObj() {}
 
 };
 
-class FSDirectoryTree {
+class FSDirectoryTree : public ObjectIO {
 public: 
 /*
  * FSDirectoryTree (if {@link Feature#FSIMAGE_NAME_OPTIMIZATION} is supported) {
@@ -215,20 +288,30 @@ public:
     int numberOfChildren; 
     vector<INodeInfo> rootChildren; 
     vector<INodeDirectoryInfo> rootDirectoryChildren; 
+
+    void writerObj(SimpleWriter writerObj) {}
+    void readObj(SimpleReader readerObj) {}
+    void printObj() {}
 }; 
 
-class FilesUnderConstruction {
+class FilesUnderConstruction : public ObjectIO {
 public: 
 
+    void writerObj(SimpleWriter writerObj) {}
+    void readObj(SimpleReader readerObj) {}
+    void printObj() {}
 }; 
 
-class SecretManagerState {
+class SecretManagerState : public ObjectIO {
 public: 
 
+    void writerObj(SimpleWriter writerObj) {}
+    void readObj(SimpleReader readerObj) {}
+    void printObj() {}
 };
 
 /* It is just a binary file at this point */
-class FSImage {
+class FSImage : public ObjectIO {
 public:
     int layoutVersion; 
     int namespaceID; 
@@ -241,19 +324,102 @@ public:
     int snapshotCounter;
     int numberOfSnapshots; 
     int numOfSnapshottableDirs; 
+
     FSDirectoryTree fsdirectoryTree; 
     FilesUnderConstruction fsUnderConstruction; 
     SecretManagerState secmanState; 
-    
+
+    void init(); 
     void createInitialFsImageFile();
+
+    void writeObj(SimpleWriter writerObj);
+    void readObj(SimpleReader readerObj);
+    void printObj();
 };
+
+SimpleWriter::SimpleWriter() {
+}
+
+void
+SimpleWriter::init() {
+    writerStreamObj.open("fsImage", ios::out | ios::binary);
+}
+
+void
+SimpleWriter::writeByte(byte b) {
+    writerStreamObj.write((char *)&b, sizeof(byte));
+}
+
+void
+SimpleWriter::writeInt(int a) {
+    writerStreamObj.write((char *)&a, sizeof(int));
+}
+
+void
+SimpleWriter::writeLong64(long64 l) {
+    writerStreamObj.write((char *)&l, sizeof(long64));
+}
+
+void
+SimpleWriter::writeFSImage(FSImage fsImageObj) {
+    writerStreamObj.write((char *)&fsImageObj, sizeof(FSImage));
+}
+
+void
+SimpleWriter::close() {
+    writerStreamObj.close();
+}
+
+void 
+SimpleReader::init() {
+    readerStreamObj.open("fsImage", ios::in | ios::binary);
+}
+
+void 
+SimpleReader::close() {
+    readerStreamObj.close();
+}
+
+void  
+SimpleReader::readByte(byte *b) {
+    readerStreamObj.read((char *)b, sizeof(byte));
+}
+
+void  
+SimpleReader::readInt(int *a) {
+    readerStreamObj.read((char *)a, sizeof(int));
+}
+
+void  
+SimpleReader::readLong64(long64 *l) {
+    readerStreamObj.read((char *)l, sizeof(long64));
+}
+
+void
+SimpleReader::readFSImage(FSImage *fsImageObj) {
+    readerStreamObj.read((char *)fsImageObj, sizeof(FSImage));
+}
+
+void 
+FSImage::init() {
+    layoutVersion = 1; 
+    namespaceID = 1; 
+    numberItemsInFSDirectoryTree = 1; 
+    namesystemGenerationStampV1 = getCurrentTime(); 
+    namesystemGenerationStampV2 = getCurrentTime();
+    generationStampAtBlockIdSwitch = 1; 
+    lastAllocatedBlockId = 0; 
+    transactionID = 1; 
+    snapshotCounter = 0;
+    numberOfSnapshots = 0; 
+    numOfSnapshottableDirs = 0; 
+}
 
 void 
 FSImage::createInitialFsImageFile() {
     long64 data = 8765; 
     long64 y; 
     ofstream fsImageFileWriter; 
-    fsImageFileWriter.open("fsImage", ios::out | ios::binary);
     fsImageFileWriter.write((char *)&data, sizeof(long64));
     fsImageFileWriter.close();
 
@@ -264,7 +430,80 @@ FSImage::createInitialFsImageFile() {
     cout << "y = " << y; 
 }
 
-int main() {
-    FSImage fsImage; 
-    fsImage.createInitialFsImageFile();    
+void 
+FSImage::printObj() {
+    cout << "FSImage: " << endl
+	 << "\tlayoutVersion: " << layoutVersion << endl
+	 << "\tnamespaceID:   " << namespaceID << endl
+	 << "\tnumberItemsInFSDirectoryTree: " << numberItemsInFSDirectoryTree << endl
+	 << "\tnamesystemGenerationStampV1: " << namesystemGenerationStampV1 << endl
+	 << "\tnamesystemGenerationStampV2: " << namesystemGenerationStampV2 << endl
+	 << "\tgenerationStampAtBlockIdSwitch: " << generationStampAtBlockIdSwitch << endl
+	 << "\tlastAllocatedBlockId: " << lastAllocatedBlockId << endl
+	 << "\ttransactionID: " << transactionID << endl
+	 << "\tsnapshotCounter: " << snapshotCounter << endl
+	 << "\tnumberOfSnapshots: " << numberOfSnapshots << endl
+	 << "\tnumOfSnapshottableDirs: " << numOfSnapshottableDirs << endl;
 }
+
+void 
+FSImage::writeObj(SimpleWriter writerObj) {
+    writerObj.writeInt(layoutVersion);  
+    writerObj.writeInt(namespaceID); 
+    writerObj.writeLong64(numberItemsInFSDirectoryTree);
+    writerObj.writeLong64(namesystemGenerationStampV1);
+    writerObj.writeLong64(namesystemGenerationStampV2);
+    writerObj.writeLong64(generationStampAtBlockIdSwitch);
+    writerObj.writeLong64(lastAllocatedBlockId);
+    writerObj.writeLong64(transactionID);
+    writerObj.writeInt(snapshotCounter);
+    writerObj.writeInt(numberOfSnapshots);
+    writerObj.writeInt(numOfSnapshottableDirs);
+
+    fsdirectoryTree.writeObj(writerObj); 
+    fsUnderConstruction.writeObj(writerObj); 
+    secmanState.writeObj(writerObj); 
+}
+
+void 
+FSImage::readObj(SimpleReader readerObj) {
+    readerObj.readInt(layoutVersion);  
+    readerObj.readInt(namespaceID); 
+    readerObj.readLong64(numberItemsInFSDirectoryTree);
+    readerObj.readLong64(namesystemGenerationStampV1);
+    readerObj.readLong64(namesystemGenerationStampV2);
+    readerObj.readLong64(generationStampAtBlockIdSwitch);
+    readerObj.readLong64(lastAllocatedBlockId);
+    readerObj.readLong64(transactionID);
+    readerObj.readInt(snapshotCounter);
+    readerObj.readInt(numberOfSnapshots);
+    readerObj.readInt(numOfSnapshottableDirs);
+
+    fsdirectoryTree.readObj(readerObj); 
+    fsUnderConstruction.readObj(readerObj); 
+    secmanState.readObj(readerObj); 
+}
+
+int main() {
+
+    cout << "Size of FSImage: = " << sizeof(FSImage) << endl;
+    FSImage fsImageObj, readFSImageObj; 
+    fsImageObj.init();
+
+    SimpleWriter writerObj; 
+    writerObj.init();
+    fsImageObj.writeObj(writerObj);
+    writerObj.close();
+
+    cout << "Original FSImage: " << endl;
+    fsImageObj.printObj();
+    
+    SimpleReader readerObj;
+    readerObj.init();
+    readFSImageObj.readObj(readerObj); 
+    readerObj.close();
+
+    cout << "Read FSImage: " << endl;
+    readFSImageObj.printObj();
+}
+
