@@ -1,3 +1,12 @@
+/* 
+	Reads fsimage file using the protobuf definitions of fsimage datastructures. 
+
+	Getting fsimage using hadoop oiv tool: 
+
+		hdfs oiv -i fsimage_0000000000000000126 -p xml -o fsimage.txt
+		hdfs oiv -i fsimage_0000000000000000126 -p Delimited -o fsimage.txt
+*/
+
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
@@ -9,12 +18,13 @@
 /* protocol buffer headers */
 #include <google/protobuf/io/zero_copy_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
+#include <google/protobuf/util/delimited_message_util.h>
 
 using namespace std;
 
+typedef long long long64;
 typedef unsigned char byte;
 typedef unsigned int uint;
-
 
 struct membuf : std::streambuf
 {
@@ -34,7 +44,6 @@ int readInteger(istream& fileReaderStream) {
 		   ((int) buffer[0] << 24); 
 }
 
-
 /* this needs refactoring and change */
 bool readDelimitedFrom(
     istream *istream_input,
@@ -44,23 +53,26 @@ bool readDelimitedFrom(
   // than on the whole stream.  (See the CodedInputStream interface for more
   // info on this limit.)
   google::protobuf::io::ZeroCopyInputStream* raw_input = new google::protobuf::io::IstreamInputStream(istream_input);
-  //google::protobuf::io::IstreamInputStream raw_input(istream_input);	
-
   google::protobuf::io::CodedInputStream input(raw_input);
-
-  //google::protobuf::io::CodedInputStream input(raw_inputInput);
 
   // Read the size.
   uint32_t size;
-  if (!input.ReadVarint32(&size)) return false;
+  if (!input.ReadVarint32(&size)) {
+	return false;
+  }
 
   // Tell the stream not to read beyond that size.
   google::protobuf::io::CodedInputStream::Limit limit =
       input.PushLimit(size);
 
   // Parse the message.
-  if (!message->MergeFromCodedStream(&input)) return false;
-  if (!input.ConsumedEntireMessage()) return false;
+  if (!message->MergeFromCodedStream(&input)) {
+	return false;
+  }
+
+  if (!input.ConsumedEntireMessage()) {
+	return false;
+  }
 
   // Release the limit.
   input.PopLimit(limit);
@@ -72,7 +84,6 @@ bool readDelimitedFrom(
 int main(int argc, char* argv[]) {
 
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
-
 	if (argc != 2) {
 		cerr << "Usage:  " << argv[0] << " fsimagefile" << endl;
 		return -1;
@@ -117,18 +128,190 @@ int main(int argc, char* argv[]) {
 		cout << "Does not have codec" << endl;
 	}
 
+	cout << "Codec = " <<  fsSummary.codec() << endl;
 	cout << "Num sections: " << fsSummary.sections_size() << endl;
 
 	for(int i=0; i< fsSummary.sections_size(); i++) {
 		hadoop::hdfs::fsimage::FileSummary_Section fsSummarySection = fsSummary.sections(i);
-		
-		if( fsSummarySection.has_name())  {
-			cout << "Section " << i << " name= " << fsSummarySection.name() << endl; 
+		if(fsSummarySection.has_name())  {
+			cout << "Section " << i << " name=" << fsSummarySection.name() ; 
 		}
+		if(fsSummarySection.has_length()) {
+			cout <<  " length=" << fsSummarySection.length();
+		}
+		if(fsSummarySection.has_offset()) {
+			cout << " offset=" << fsSummarySection.offset(); 
+		}
+		cout << endl;		
+	}
+	
+/*
+  TODO: instead of using new ifstream imgFileForPB for every case, use a single ifstream 
+        and copy the data to be processed in array and create a zerocopystream out of it.
+*/
+	for(int i=0; i < fsSummary.sections_size(); i++) {
+		hadoop::hdfs::fsimage::FileSummary_Section fsSummarySection = fsSummary.sections(i);
+		//NOTE TODO: could not reuse the original imgFile for readDelimitedFrom, not sure why
+		ifstream imgFile2(argv[1], ios::in | ios::binary);
+		imgFile2.seekg(fsSummarySection.offset(), std::ios::beg);
+		hadoop::hdfs::fsimage::INodeSection inodeSection;
+
+		if(fsSummarySection.name() == "INODE") {
+			cout << "Node: " << i << " " << endl;
+	
+			ifstream imgFileForPB(argv[1], ios::in | ios::binary);
+			imgFileForPB.seekg(fsSummarySection.offset(), std::ios::beg);
+			google::protobuf::io::ZeroCopyInputStream* zRawInput = new google::protobuf::io::IstreamInputStream(&imgFileForPB);
+			bool clean_eof; 
+			google::protobuf::util::ParseDelimitedFromZeroCopyStream(&inodeSection, zRawInput, &clean_eof);
+			cout << " numinodes=" << inodeSection.numinodes() << endl; 
+			cout << " lastnodeid=" << inodeSection.lastinodeid() << endl; 
+
+			hadoop::hdfs::fsimage::INodeSection::INode inode; 
+			for (int inindex=0; inindex < inodeSection.numinodes(); inindex++) {
+				google::protobuf::util::ParseDelimitedFromZeroCopyStream(&inode, zRawInput, &clean_eof);
+				cout << " inode: type =" << inode.type() << " id=" << inode.id() << " name=" << inode.name() << endl;
+
+				if(inode.type() == 1) { //FILE
+						hadoop::hdfs::fsimage::INodeSection::INodeFile ifile = inode.file();
+						cout << " File details: " << endl;
+						cout << "  replication:" << ifile.replication();
+						cout << "  modificationTime:" << ifile.modificationtime();
+						cout << "  accessTime:" << ifile.accesstime();
+						cout << "  preferredBlockSize:" << ifile.preferredblocksize();
+						cout << "  permission:" << ifile.permission();
+						cout << "  storagePolicyID:" << ifile.storagepolicyid();
+						cout << "  erasurecodingpolicyid:" << ifile.erasurecodingpolicyid();
+						cout << endl;
+
+
+						long64 permissionValue = ifile.permission();
+					 	long64 USER_GROUP_STRID_MASK = (1 << 24) - 1;
+						int USER_STRID_OFFSET = 40;
+						int GROUP_STRID_OFFSET = 16;
 		
+						cout << "  perm:" << (int)(permissionValue & ((1 << GROUP_STRID_OFFSET)-1)) << endl;
+						cout << "  groupid:" << (int) ((permissionValue >> GROUP_STRID_OFFSET) & USER_GROUP_STRID_MASK) << endl;
+						cout << "  userid:" << (int) ((permissionValue >> USER_STRID_OFFSET) & USER_GROUP_STRID_MASK) << endl;
+						
+						for(int blkindex=0; blkindex < ifile.blocks_size(); blkindex++) {
+							hadoop::hdfs::BlockProto bproto = ifile.blocks(blkindex); 
+							cout << "  Block id: " << bproto.blockid() << " genstamp:" 
+								 << bproto.genstamp() << " numbytes= " << bproto.numbytes() << endl;
+						}
+
+						hadoop::hdfs::fsimage::INodeSection::FileUnderConstructionFeature ucFeature = ifile.fileuc();
+						cout << " FileUnderConstructionFeature, clientName=" << ucFeature.clientname() 
+							 << " clientMachine=" << ucFeature.clientmachine() << endl;
+
+						if (ifile.has_acl()) {
+							cout << " aclFeature: "; 
+							const hadoop::hdfs::fsimage::INodeSection::AclFeatureProto aclFeature = ifile.acl();
+							for (int aclEntIndex = 0; aclEntIndex <= aclFeature.entries_size(); aclEntIndex++) {
+								cout << " aclEntIndex:" << aclEntIndex << "- " << aclFeature.entries(aclEntIndex); 
+							}
+							cout << endl;
+						}
+/*
+    optional uint32 replication = 1;
+    optional uint64 modificationTime = 2;
+    optional uint64 accessTime = 3;
+    optional uint64 preferredBlockSize = 4;
+    optional fixed64 permission = 5;
+    repeated BlockProto blocks = 6;
+    optional FileUnderConstructionFeature fileUC = 7;
+    optional AclFeatureProto acl = 8;
+    optional XAttrFeatureProto xAttrs = 9;
+    optional uint32 storagePolicyID = 10; 
+    optional BlockTypeProto blockType = 11; 
+    optional uint32 erasureCodingPolicyID = 12; 
+*/
+					} else if (inode.type() == 2) { //DIRECTORY
+						hadoop::hdfs::fsimage::INodeSection::INodeDirectory idirectory = inode.directory();
+						cout << " Directory details: " << endl;
+						cout << "   modificationtime:" << idirectory.modificationtime();
+						cout << "   nsquota:" << idirectory.nsquota();
+						cout << "   dsquota:" << idirectory.dsquota();
+						cout << "   permission:" << idirectory.permission();
+						cout << endl;
+
+/*
+message INodeDirectory {
+    optional uint64 modificationTime = 1;
+    // namespace quota
+    optional uint64 nsQuota = 2;
+    // diskspace quota
+    optional uint64 dsQuota = 3;
+    optional fixed64 permission = 4;
+    optional AclFeatureProto acl = 5;
+    optional XAttrFeatureProto xAttrs = 6;
+    optional QuotaByStorageTypeFeatureProto typeQuotas = 7;
+  }
+*/
+					} else if (inode.type() == 3) { //SYMLINK
+
+					}
+				}
+			imgFileForPB.close();
+			cout << endl;
+		} else if (fsSummarySection.name() == "NS_INFO1")  {
+
+
+		} else if (fsSummarySection.name() == "STRING_TABLE")  { //invalid right now
+			cout << "Node: " << i << "  STRING_TABLE" << endl;
+
+			ifstream imgFileForPB(argv[1], ios::in | ios::binary);
+			imgFileForPB.seekg(fsSummarySection.offset(), std::ios::beg);
+			google::protobuf::io::ZeroCopyInputStream* zRawInput = new google::protobuf::io::IstreamInputStream(&imgFileForPB);
+			bool clean_eof = false; 
+			
+			hadoop::hdfs::fsimage::StringTableSection stable; 
+			google::protobuf::util::ParseDelimitedFromZeroCopyStream(&stable, zRawInput, &clean_eof);
+
+			for(int stentryIndex=0; stentryIndex < stable.numentry(); stentryIndex++) {
+				hadoop::hdfs::fsimage::StringTableSection_Entry stentry; 
+				google::protobuf::util::ParseDelimitedFromZeroCopyStream(&stentry, zRawInput, &clean_eof);				
+				cout << "  id:" << stentry.id() << " str:" << stentry.str() << endl;
+			}
+
+			imgFileForPB.close();		
+		} else if (fsSummarySection.name() == "INODE_DIR")  { 
+
+			cout << "Node: " << i << "  INODE_DIR" << endl;
+			hadoop::hdfs::fsimage::INodeDirectorySection dirSection; 
+
+			ifstream imgFileForPB(argv[1], ios::in | ios::binary);
+			imgFileForPB.seekg(fsSummarySection.offset(), std::ios::beg);
+			google::protobuf::io::ZeroCopyInputStream* zRawInput = new google::protobuf::io::IstreamInputStream(&imgFileForPB);
+			bool clean_eof = false; 
+			
+			while(true) {
+				hadoop::hdfs::fsimage::INodeDirectorySection::DirEntry dentry; 
+				google::protobuf::util::ParseDelimitedFromZeroCopyStream(&dentry, zRawInput, &clean_eof);
+			
+				if (dentry.parent() == 0) break;
+				
+				cout << "  parent=" << dentry.parent();
+				for(int cindex =0; cindex < dentry.children_size(); cindex++) {
+					cout << "   children:" << dentry.children(cindex);
+				} 
+				cout << endl;
+			}
+/*
+message DirEntry {
+    optional uint64 parent = 1;
+    // children that are not reference nodes
+    repeated uint64 children = 2 [packed = true];
+    // children that are reference nodes, each element is a reference node id
+    repeated uint32 refChildren = 3 [packed = true];
+  }
+*/			
+			imgFileForPB.close();
+		}
+		imgFile2.close();
 	}
 
 	google::protobuf::ShutdownProtobufLibrary();
 	return 0; 
-
 }
+
