@@ -11,9 +11,9 @@
 #include <boost/filesystem.hpp>
 
 /* locals */
-#include "chunkserver.h"
-#include "message.h"
-#include "tcpserver.h"
+#include "include/chunkserver.h"
+#include "include/message.h"
+#include "include/tcpserver.h"
 
 using namespace std;
 

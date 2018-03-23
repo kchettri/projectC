@@ -3,8 +3,9 @@
 ##
 ##
 
-LDFLAGS = -pthread -std=c++11
-CFLAGS = -std=c++11
+#include common definitions
+include ../Makefile.common
+
 STATICLIBS = libprotobuf.a
 
 PROTOINCLUDE = -I=hadoop.common -I=hadoop.common.client -I=hadoop.hdfs -I=hadoop.hdfs.client
@@ -36,7 +37,7 @@ $(MAIN): $(HADOOP_COMMON_PROTOOBJS) $(HADOOP_HDFS_CLIENT_PROTOOBJS) $(HADOOP_HDF
 	g++ -g -o main $^ $(STATICLIBS) $(LDFLAGS) $(PROTO_SRC_HEADERS)
 
 %.o: %.cc
-	g++ -g -c -o $@ $< $(CFLAGS) $(PROTO_SRC_HEADERS)
+	g++ -g -c -o $@ $< $(CFLAGS) $(PROTO_SRC_HEADERS) $(INCLUDE)
 
 ## hadoop.hdfs proto files
 $(HADOOP_HDFS_PROTOSRC): $(HADOOP_HDFS_PROTOCFILES)

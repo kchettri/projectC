@@ -16,8 +16,8 @@
 
 
 /* locals */
-#include <defs.h>  // for byte
-#include <message.h> //for Data
+#include "defs.h"  // for byte
+#include "message.h" //for Data
 
 class TCPServer {
 

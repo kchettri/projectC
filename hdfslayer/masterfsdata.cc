@@ -107,7 +107,8 @@
  */
 
  /* locals */
-#include "defs.h"
+#include "include/defs.h"
+#include "include/simplerw.h"
 
 /* C++ */
 //#include <string>
@@ -117,31 +118,6 @@
 #include <chrono>
 
 using namespace std;
-
-class SimpleReader {
-private: 
-    ifstream readerStreamObj; 
-public:
-    void init();
-    void readByte(byte* b); 
-    void readInt(int* a);
-    void readLong64(long64* l);
-    FSImage readFSImage();
-    void close();
-};
-
-class SimpleWriter {
-private: 
-    ofstream writerStreamObj;
-public: 
-    SimpleWriter();
-    void init();
-    void writeByte(byte b); 
-    void writeInt(int a);
-    void writeLong64(long64 l);
-    void close();
-    void writeFSImage(FSImage fsImgageObj);
-};
 
 class ObjectIO {
 public: 
@@ -337,69 +313,6 @@ public:
     void printObj();
 };
 
-SimpleWriter::SimpleWriter() {
-}
-
-void
-SimpleWriter::init() {
-    writerStreamObj.open("fsImage", ios::out | ios::binary);
-}
-
-void
-SimpleWriter::writeByte(byte b) {
-    writerStreamObj.write((char *)&b, sizeof(byte));
-}
-
-void
-SimpleWriter::writeInt(int a) {
-    writerStreamObj.write((char *)&a, sizeof(int));
-}
-
-void
-SimpleWriter::writeLong64(long64 l) {
-    writerStreamObj.write((char *)&l, sizeof(long64));
-}
-
-void
-SimpleWriter::writeFSImage(FSImage fsImageObj) {
-    writerStreamObj.write((char *)&fsImageObj, sizeof(FSImage));
-}
-
-void
-SimpleWriter::close() {
-    writerStreamObj.close();
-}
-
-void 
-SimpleReader::init() {
-    readerStreamObj.open("fsImage", ios::in | ios::binary);
-}
-
-void 
-SimpleReader::close() {
-    readerStreamObj.close();
-}
-
-void  
-SimpleReader::readByte(byte *b) {
-    readerStreamObj.read((char *)b, sizeof(byte));
-}
-
-void  
-SimpleReader::readInt(int *a) {
-    readerStreamObj.read((char *)a, sizeof(int));
-}
-
-void  
-SimpleReader::readLong64(long64 *l) {
-    readerStreamObj.read((char *)l, sizeof(long64));
-}
-
-void
-SimpleReader::readFSImage(FSImage *fsImageObj) {
-    readerStreamObj.read((char *)fsImageObj, sizeof(FSImage));
-}
-
 void 
 FSImage::init() {
     layoutVersion = 1; 
@@ -491,7 +404,7 @@ int main() {
     fsImageObj.init();
 
     SimpleWriter writerObj; 
-    writerObj.init();
+    writerObj.init("fsimage");
     fsImageObj.writeObj(writerObj);
     writerObj.close();
 
@@ -499,7 +412,7 @@ int main() {
     fsImageObj.printObj();
     
     SimpleReader readerObj;
-    readerObj.init();
+    readerObj.init("fsimage");
     readFSImageObj.readObj(readerObj); 
     readerObj.close();
 

@@ -22,11 +22,11 @@
 //#include <unistd.h>
 
 /* locals */
-#include "defs.h"
-#include "message.h"
-#include "logger.h"
-#include "tcpserver.h"
-#include "chunkserver.h"
+#include "include/defs.h"
+#include "include/message.h"
+#include "include/logger.h"
+#include "include/tcpserver.h"
+#include "include/chunkserver.h"
 
 using namespace std;
 

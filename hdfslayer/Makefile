@@ -1,13 +1,12 @@
 ##
-## Common makefile for master, chunkserver, and client
+## Makefile for master, chunkserver, and client
 ##
 ##
 
-LDFLAGS = -lpthread -lboost_system -lboost_filesystem -std=c++11
-CFLAGS = -std=c++11
-INCLUDE = -I.
+## include common compilation/linker flag definitions
+include Makefile.common
 
-COMMONSRCS = message.cc
+COMMONSRCS = message.cc simplerw.cc
 COMMONOBJS = $(COMMONSRCS:.cc=.o)
 
 CHUNKSERVER = bin/chunkserver
@@ -25,8 +24,13 @@ CLIENTSRCS = simplehdfsclient.cc
 CLIENTDEPS = ## Add headers
 CLIENTOBJS = $(CLIENTSRCS:.cc=.o)
 
+EDITLOG = bin/editlog
+EDITLOGSRCS = editlog.cc
+EDITLOGDEPS = 
+EDITLOGOBJS = $(EDITLOGSRCS:.cc=.o)
 
-all: $(MASTER) $(CLIENT) 
+
+all: $(MASTER) $(CLIENT) $(EDITLOG)
 
 %.o: %.cc
 	g++ -c -o $@ $< $(CFLAGS) $(INCLUDE)
@@ -35,6 +39,9 @@ $(MASTER): $(MASTEROBJS) $(COMMONOBJS)
 	g++ -o $@ $^ $(LDFLAGS)
 
 $(CLIENT): $(CLIENTOBJS) $(COMMONOBJS)
+	g++ -o $@ $^ $(LDFLAGS)	
+
+$(EDITLOG): $(EDITLOGOBJS) $(COMMONOBJS)
 	g++ -o $@ $^ $(LDFLAGS)	
 
 clean: 

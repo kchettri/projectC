@@ -1,0 +1,9 @@
+#
+# common definitions of Makefile
+# 
+
+INCLUDEROOTFOLDER:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+
+LDFLAGS = -lpthread -lboost_system -lboost_filesystem -std=c++11
+CFLAGS = -std=c++11
+INCLUDE = -I$(INCLUDEROOTFOLDER)

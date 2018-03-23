@@ -11,7 +11,7 @@
 #include <string.h>
 
 /* locals */
-#include "message.h"
+#include "include/message.h"
 
 using namespace std;
 

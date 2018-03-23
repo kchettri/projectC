@@ -20,8 +20,8 @@
 #include <unistd.h>
 
 /* locals */
-#include "defs.h"
-#include "message.h"
+#include "include/defs.h"
+#include "include/message.h"
 
 using namespace std;
 
