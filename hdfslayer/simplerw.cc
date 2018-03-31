@@ -16,22 +16,47 @@ SimpleReader::init(string filename) {
     readerStreamObj.open(filename, ios::in | ios::binary);
 }
 
+bool
+SimpleReader::isEOF() {
+	if ((readerStreamObj.rdstate() & fstream::eofbit ) != 0 )
+		return true;
+	else 
+		return false;
+}
+
 void
 SimpleReader::close() {
     readerStreamObj.close();
 }
 
-void
+int
 SimpleReader::readByte(byte *b) {
+	if (isEOF()) return -1;
     readerStreamObj.read((char *)b, sizeof(byte));
+	return 0;
 }
 
-void
+int 
+SimpleReader::readInt16BigEndian(int16 *a)  {
+	if (isEOF()) return -1;
+    unsigned char buffer[2];    
+    readerStreamObj.read((char *)buffer, 2); 
+
+    *a =  (int) buffer[1] + 
+           ((int) buffer[0] << 8); 
+	return 0;
+}
+
+int
 SimpleReader::readInt(int *a) {
+	if (isEOF()) return -1;
     readerStreamObj.read((char *)a, sizeof(int));
+	return 0;
 }
 
-void SimpleReader::readIntBigEndian(int *a)  {
+int 
+SimpleReader::readIntBigEndian(int *a)  {
+	if (isEOF()) return -1;
     unsigned char buffer[4];    
     readerStreamObj.read((char *)buffer, 4); 
 
@@ -39,20 +64,32 @@ void SimpleReader::readIntBigEndian(int *a)  {
            ((int) buffer[2] << 8) +
            ((int) buffer[1] << 16)  +   
            ((int) buffer[0] << 24); 
+	return 0;
 }
 
-void
+int
 SimpleReader::readLong64(long64 *l) {
+	if (isEOF()) return -1;
     readerStreamObj.read((char *)l, sizeof(long64));
+	return 0;
 }
 
+int
+SimpleReader::readLong64BigEndian(long64 *l) {
+	if (isEOF()) return -1;
+	unsigned char buffer[8];
+	readerStreamObj.read((char *)buffer, 8); 
 
-/*
-void
-SimpleReader::readFSImage(FSImage *fsImageObj) {
-    readerStreamObj.read((char *)fsImageObj, sizeof(FSImage));
+	*l = (long64) buffer[7] + 
+		 ((long64) buffer[6] << 8) + 
+		 ((long64) buffer[5] << 16) + 
+		 ((long64) buffer[4] << 24) + 
+		 ((long64) buffer[3] << 32) + 
+		 ((long64) buffer[2] << 40) + 
+		 ((long64) buffer[1] << 48) + 
+		 ((long64) buffer[0] << 56);
+	return 0;
 }
-*/
 
 /* END: SimpleReader implementation*/
 

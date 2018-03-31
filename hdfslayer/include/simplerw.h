@@ -19,10 +19,13 @@ private:
     ifstream readerStreamObj; 
 public:
     void init(string filename);
-    void readByte(byte* b); 
-    void readInt(int* a); 
-	void readIntBigEndian(int *a);
-    void readLong64(long64* l); 
+	bool isEOF();
+    int readByte(byte* b); 
+	int readInt16BigEndian(int16 *a);
+    int readInt(int* a); 
+	int readIntBigEndian(int *a);
+	int readLong64BigEndian(long64 *l);
+    int readLong64(long64* l); 
     //FSImage readFSImage();
     void close();
 };

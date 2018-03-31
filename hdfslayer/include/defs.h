@@ -8,6 +8,7 @@
 #define DEFS_H_
 
 typedef unsigned char byte;
+typedef unsigned short int int16;
 typedef long long long64;
 
 long64 getCurrentTime();
