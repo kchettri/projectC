@@ -20,6 +20,8 @@ private:
 public:
     void init(string filename);
 	bool isEOF();
+	int readCharArray(char *buffer, int length);
+	int readString(string& str, int length);
     int readByte(byte* b); 
 	int readInt16BigEndian(int16 *a);
     int readInt(int* a); 

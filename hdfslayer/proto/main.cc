@@ -26,13 +26,6 @@ typedef long long long64;
 typedef unsigned char byte;
 typedef unsigned int uint;
 
-struct membuf : std::streambuf
-{
-    membuf(char* begin, char* end) {
-        this->setg(begin, begin, end);
-    }
-};
-
 //returns integer stored in big endian format
 int readInteger(istream& fileReaderStream) {
 	unsigned char buffer[4];	

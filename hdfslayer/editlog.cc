@@ -128,8 +128,6 @@ enum Opcodes {
   OP_INVALID_BYTE = 255
 };
 
-
-
 // OP_START_LOG_SEGMENT
 // Every opcode has read and write functions, that reads/writes
 // their respective fields
@@ -143,8 +141,13 @@ void readAdd(SimpleReader &sReader) {
 	int intVal; 
 	int16 int16Val;
 	long64 longVal;
+
+	sReader.readLong64BigEndian(&longVal);
+	cout << "inode=" << longVal << endl;
+	
 	sReader.readIntBigEndian(&intVal); 
 	cout << "Length = " << intVal << endl;
+	
 	sReader.readLong64BigEndian(&longVal);
 	cout << "longVal= " << longVal << endl;
 
@@ -153,8 +156,138 @@ void readAdd(SimpleReader &sReader) {
 }
 
 
-int main(int argc, char* argv[]) {
+//OP_MKDIR, 
+// currently all ops do not handle previous version of HDFS other than -64
+void readMkDir(SimpleReader &sReader) {
+	//fields
+	int intVal;
+	int16 int16Val;
+	long64 longVal;
+	byte byteVal;
+	string str;
 
+	//EDITLOG_OP_OPTIMIZATION when not supported, this contains
+	//length field. 
+	//Log version, -64 support EDITLOG_OP_OPTIMIZATION
+	//sReader.readIntBigEndian(&intVal);
+	cout << "Length=" << intVal << endl;
+
+	sReader.readLong64BigEndian(&longVal);
+	cout << "inode=" << longVal << endl;
+
+	//read string path
+	//string encoding, length followed by char arrary of same length
+	sReader.readInt16BigEndian(&int16Val); 
+	cout << "string length=" << (int) int16Val << endl;
+
+	//char *path = new char[int16Val + 1];
+	//sReader.readCharArray(path, int16Val);
+	//path[int16Val] = '\0';
+	sReader.readString(str, int16Val);
+	cout << "path=" << str << " length=" << str.length()  << endl;
+
+	sReader.readLong64BigEndian(&longVal);
+	cout << "timestamp=" << longVal << endl;
+
+	//access time is supported, but it is not updated currently for 
+	//performance reasons
+	sReader.readLong64BigEndian(&longVal); 
+	cout << "access time=" << longVal << endl;
+
+	//read permission status;
+	// String in permission status is stored as Text.class, which accepts 
+	// a different encoder/decoder if present
+  	//username = Text.readString(in, Text.DEFAULT_MAX_LEN);
+    //groupname = Text.readString(in, Text.DEFAULT_MAX_LEN);
+    //permission = FsPermission.read(in);
+	sReader.readByte(&byteVal);
+	sReader.readString(str, (int)byteVal);
+	cout << "username=" << str << " length=" << (int)byteVal  << endl;
+	sReader.readByte(&byteVal);
+	sReader.readString(str, (int)byteVal);
+	cout << "groupname=" << str << " length=" << (int)byteVal  << endl;
+	sReader.readInt16BigEndian(&int16Val);
+	cout << "Mode=" << (int)int16Val << endl;
+
+
+	//ACL entries: 
+	//First length, followed by length number of ACL entries
+	sReader.readIntBigEndian(&intVal); 
+	cout << "ACL size=" << intVal << endl;
+
+	if(intVal == 0) { 
+		cout << "ACL size is zero" << endl; 
+	} else {
+		cout << "ACL size is not zero. Need some processing. Exiting now." << endl;	
+	}
+	//
+
+}
+/*
+ About LayoutFeatures: 
+ 	- editlog follows LayoutFeature to determine the contents of editlog 
+
+ Editlog Layout version supported by this implementation is: ERASURE_CODING
+
+ Features that are compatible with ERASURE_CODING are (in reverse order of their
+ occurance in Feature enum in NameNodeLayoutVersion.java) :
+
+	Feature					LayoutVersion, AncestorLayoutVersion
+	============================================================	
+    NAMESPACE_QUOTA			-16, -15
+    FILE_ACCESS_TIME		-17, -16
+    DISKSPACE_QUOTA			-18, -17
+    STICKY_BIT				-19, -18
+    APPEND_RBW_DIR			-20, -19
+    ATOMIC_RENAME			-21, -20
+    CONCAT					-22, -21
+    SYMLINKS				-23, -22
+    DELEGATION_TOKEN		-24, -23
+    FSIMAGE_COMPRESSION		-25, -24
+    FSIMAGE_CHECKSUM		-26, -25
+    REMOVE_REL13_DISK_LAYOUT_SUPPORT	-27, -26
+    EDITS_CHECKSUM			-28, -27
+    UNUSED					-29, -28
+    FSIMAGE_NAME_OPTIMIZATION	-30, -29
+    RESERVED_REL20_203		-31, -19
+    RESERVED_REL20_204		-32, -31
+    RESERVED_REL22			-33, -27
+    RESERVED_REL23			-34, -30
+    FEDERATION				-35, -34
+    LEASE_REASSIGNMENT		-36, -35
+    STORED_TXIDS			-37, -36
+    TXID_BASED_LAYOUT		-38, -37
+    EDITLOG_OP_OPTIMIZATION	-39, -38
+    OPTIMIZE_PERSIST_BLOCKS	-40, -39
+    RESERVED_REL1_2_0		-41, -32  Reserved: CONCAT
+    ADD_INODE_ID			-42, -40
+    SNAPSHOT				-43, -42
+    RESERVED_REL1_3_0		-44, -41, Reserved: ADD_INODE_ID, SNAPSHOT, FSIMAGE_NAME_OPTIMIZATION
+    OPTIMIZE_SNAPSHOT_INODES	-45, -43,
+    SEQUENTIAL_BLOCK_ID		-46, -45
+    EDITLOG_SUPPORT_RETRYCACHE	-47, -46
+    EDITLOG_ADD_BLOCK		-48, -47 
+    ADD_DATANODE_AND_STORAGE_UUIDS	-49, -48
+    ADD_LAYOUT_FLAGS		-50, -49
+    CACHING					-51, -50
+    // Hadoop 2.4.0
+    PROTOBUF_FORMAT			-52, -51
+    EXTENDED_ACL			-53, -52
+    RESERVED_REL2_4_0		-54, -51  Reserved Features: PROTOBUF_FORMAT, EXTENDED_ACL
+  	ROLLING_UPGRADE			-55, -53
+    EDITLOG_LENGTH			-56, -55
+    XATTRS					-57, -56
+    CREATE_OVERWRITE		-58, -57
+    XATTRS_NAMESPACE_EXT	-59, -58
+    BLOCK_STORAGE_POLICY	-60, -59
+    TRUNCATE				-61, -60
+    APPEND_NEW_BLOCK		-62, -61
+    QUOTA_BY_STORAGE_TYPE	-63, -62
+    ERASURE_CODING			-64, -63
+*/
+int main(int argc, char* argv[]) {
+	
+	//GOOGLE_PROTOBUF_VERIFY_VERSION;
 	if (argc < 2) {
 		cout << "Syntax: <progname> <filename>" << endl;
 		exit(1);
@@ -173,11 +306,9 @@ int main(int argc, char* argv[]) {
 
  Following opcode format is based on LengthPrefixedReader
 
-
-
  1. Log version, layoutVersion (Integer)
  2. layout flags: is an integer and is zero
- 3. Opcode
+ 3. Opcode 
 
  The minimum Op has:
    1-byte opcode
@@ -223,7 +354,6 @@ hdfs oev -i proto/edits_0000000000000000006-0000000000000000014 -o editlog14.xml
 
 		//checksum should be verified before reading the opcode, so that 
 		// we dont end up reading corrupted opcode fields.
-		//cout << "txid=" << std::hex << txid << std::dec << endl; 
 		switch((int)opcode) {
 
 			case OP_ADD: //0
@@ -231,7 +361,12 @@ hdfs oev -i proto/edits_0000000000000000006-0000000000000000014 -o editlog14.xml
 				readAdd(sReader); 
 				exit(0);
 				break;
-	
+
+			case OP_MKDIR: //3
+				cout << "OP_MKDIR opcode mkdir" << endl;
+				readMkDir(sReader); 
+				break;
+
 			case OP_START_LOG_SEGMENT: //24
 				cout << "OP_START_LOG_SEGMENT opcode read" << endl;
 				readStartLogSegment(sReader); 
@@ -246,6 +381,8 @@ hdfs oev -i proto/edits_0000000000000000006-0000000000000000014 -o editlog14.xml
 				break; 
 
 			default:
+				cout << "UNKNOWN opcode" << endl;
+				exit(1);
 				break; 
 		}
 

@@ -29,6 +29,25 @@ SimpleReader::close() {
     readerStreamObj.close();
 }
 
+int 
+SimpleReader::readCharArray(char *buffer, int length)  {
+	if (isEOF()) return -1;
+    readerStreamObj.read((char *)buffer, length);
+	return 0;
+}
+
+//reads string, and sets null to last char
+int 
+SimpleReader::readString(string& str, int length)  {
+	if (isEOF()) return -1;
+	char *buffer = new char[length + 1];
+    readerStreamObj.read((char *)buffer, length);
+	buffer[length] = '\0';
+	str = buffer;
+	delete buffer;
+	return 0;
+}
+
 int
 SimpleReader::readByte(byte *b) {
 	if (isEOF()) return -1;

@@ -10,9 +10,9 @@ STATICLIBS = libprotobuf.a
 
 PROTOINCLUDE = -I=hadoop.common -I=hadoop.common.client -I=hadoop.hdfs -I=hadoop.hdfs.client
 
-HADOOP_HDFS_PROTOCFILES = hadoop.hdfs/fsimage.proto
+HADOOP_HDFS_PROTOCFILES = hadoop.hdfs/fsimage.proto hadoop.hdfs/editlog.proto
 HADOOP_HDFS_PROTOSRCDIR = hadoop.hdfs/src/
-HADOOP_HDFS_PROTOSRC = hadoop.hdfs/src/fsimage.pb.cc
+HADOOP_HDFS_PROTOSRC = hadoop.hdfs/src/fsimage.pb.cc hadoop.hdfs/src/editlog.pb.cc
 HADOOP_HDFS_PROTOOBJS = $(HADOOP_HDFS_PROTOSRC:.cc=.o)
 
 HADOOP_HDFS_CLIENT_PROTOCFILES = hadoop.hdfs.client/acl.proto hadoop.hdfs.client/hdfs.proto hadoop.hdfs.client/xattr.proto
