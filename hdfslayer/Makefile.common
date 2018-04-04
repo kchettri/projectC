@@ -3,7 +3,31 @@
 # 
 
 INCLUDEROOTFOLDER:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+LIBROOTFOLDER:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
+PROTO_STATICLIBS = $(INCLUDEROOTFOLDER)/proto/libprotobuf.a
+
+
+HADOOP_HDFS_PROTOSRCDIR = $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs/src/
+HADOOP_HDFS_CLIENT_PROTOSRCDIR = $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client/src/
+HADOOP_COMMON_PROTOSRCDIR = $(INCLUDEROOTFOLDER)/proto/hadoop.common/src/
+
+HADOOP_HDFS_PROTOSRC = $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs/src/fsimage.pb.cc $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs/src/editlog.pb.cc
+HADOOP_HDFS_PROTOOBJS = $(HADOOP_HDFS_PROTOSRC:.cc=.o)
+
+HADOOP_HDFS_CLIENT_PROTOSRC = $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client/src/acl.pb.cc $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client/src/hdfs.pb.cc $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client/src/xattr.pb.cc
+HADOOP_HDFS_CLIENT_PROTOOBJS = $(HADOOP_HDFS_CLIENT_PROTOSRC:.cc=.o)
+
+HADOOP_COMMON_PROTOSRC = $(INCLUDEROOTFOLDER)/proto/hadoop.common/src/Security.pb.cc
+HADOOP_COMMON_PROTOOBJS = $(HADOOP_COMMON_PROTOSRC:.cc=.o)
+
+PROTO_SRC_HEADERS = -I$(HADOOP_HDFS_PROTOSRCDIR) -I$(HADOOP_HDFS_CLIENT_PROTOSRCDIR) -I$(HADOOP_COMMON_PROTOSRCDIR)
+
+
+## Common definitions that are used by different Makefiles
 LDFLAGS = -lpthread -lboost_system -lboost_filesystem -std=c++11
 CFLAGS = -std=c++11
-INCLUDE = -I$(INCLUDEROOTFOLDER)
+INCLUDE = -I$(INCLUDEROOTFOLDER) $(PROTO_SRC_HEADERS)
+STATICLIBS = $(PROTO_STATICLIBS)
+PROTOBUF_OBJS = $(HADOOP_HDFS_PROTOOBJS) $(HADOOP_HDFS_CLIENT_PROTOOBJS) $(HADOOP_COMMON_PROTOOBJS)
+

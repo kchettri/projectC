@@ -16,6 +16,11 @@ SimpleReader::init(string filename) {
     readerStreamObj.open(filename, ios::in | ios::binary);
 }
 
+ifstream&
+SimpleReader::getIfStream() {
+	return readerStreamObj;
+}
+
 bool
 SimpleReader::isEOF() {
 	if ((readerStreamObj.rdstate() & fstream::eofbit ) != 0 )

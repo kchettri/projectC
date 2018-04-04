@@ -28,6 +28,7 @@ public:
 	int readIntBigEndian(int *a);
 	int readLong64BigEndian(long64 *l);
     int readLong64(long64* l); 
+	ifstream& getIfStream();
     //FSImage readFSImage();
     void close();
 };

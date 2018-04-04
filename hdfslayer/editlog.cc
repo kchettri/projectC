@@ -9,6 +9,14 @@ using namespace std;
 //locals
 #include "include/simplerw.h"
 
+//protobuf
+#include "proto/hadoop.hdfs/src/editlog.pb.h"
+/* protocol buffer delimited parser support */
+#include <google/protobuf/io/zero_copy_stream.h>
+#include <google/protobuf/io/zero_copy_stream_impl.h>
+#include <google/protobuf/util/delimited_message_util.h>
+
+
 class LayoutVersion {
     int curVersion;
 	int ancestorVersion; 
@@ -222,6 +230,22 @@ void readMkDir(SimpleReader &sReader) {
 	}
 	//
 
+	//Read XAttrEditLogProto from the editlog
+	hadoop::hdfs::XAttrEditLogProto xattrEditLogProto; 
+	ifstream& editLogIfStream = sReader.getIfStream();
+    google::protobuf::io::ZeroCopyInputStream* zRawInput = new google::protobuf::io::IstreamInputStream(&editLogIfStream);
+    bool clean_eof;
+    google::protobuf::util::ParseDelimitedFromZeroCopyStream(&xattrEditLogProto, zRawInput, &clean_eof);
+	if (xattrEditLogProto.has_src()) {
+		cout << "xattrEditLogProto has src: " << xattrEditLogProto.src() << endl; 
+	} else  {
+		cout << "xattrEditLogProto does not have src" << endl;
+	}
+	cout << "xattrEditLogProto xattrs size=" << xattrEditLogProto.xattrs_size() << endl;
+	//zerocopyinputstream reads until the end of the file into a buffer,
+	//so ifstream is closed after parsedelimitedFromZeroCopyStream is called. 
+	//TODO: need to do something in order to recover the original ifstream os sReader
+	
 }
 /*
  About LayoutFeatures: 
@@ -287,7 +311,7 @@ void readMkDir(SimpleReader &sReader) {
 */
 int main(int argc, char* argv[]) {
 	
-	//GOOGLE_PROTOBUF_VERIFY_VERSION;
+	GOOGLE_PROTOBUF_VERIFY_VERSION;
 	if (argc < 2) {
 		cout << "Syntax: <progname> <filename>" << endl;
 		exit(1);
@@ -395,6 +419,10 @@ hdfs oev -i proto/edits_0000000000000000006-0000000000000000014 -o editlog14.xml
 	}
 
 	sReader.close();
+	
+	google::protobuf::ShutdownProtobufLibrary();
 
 	return 0;
 }
+
+
