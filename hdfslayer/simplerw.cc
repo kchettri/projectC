@@ -13,12 +13,28 @@ using namespace std;
 
 void
 SimpleReader::init(string filename) {
+	this->filename = filename;
     readerStreamObj.open(filename, ios::in | ios::binary);
+}
+
+string 
+SimpleReader::getFilename() {
+	return filename;
 }
 
 ifstream&
 SimpleReader::getIfStream() {
 	return readerStreamObj;
+}
+
+int
+SimpleReader::getCurrentPosition() {
+	return readerStreamObj.tellg();
+}
+
+void
+SimpleReader::setCurrentPosition(int pos) {
+	readerStreamObj.seekg(pos, ios::beg);
 }
 
 bool

@@ -166,7 +166,7 @@ void readAdd(SimpleReader &sReader) {
 
 //OP_MKDIR, 
 // currently all ops do not handle previous version of HDFS other than -64
-void readMkDir(SimpleReader &sReader) {
+void readMkDir(SimpleReader &sReader, int fieldLength) {
 	//fields
 	int intVal;
 	int16 int16Val;
@@ -178,6 +178,10 @@ void readMkDir(SimpleReader &sReader) {
 	//length field. 
 	//Log version, -64 support EDITLOG_OP_OPTIMIZATION
 	//sReader.readIntBigEndian(&intVal);
+
+	int readmkdir_startposition = sReader.getCurrentPosition();
+
+	intVal = 0;
 	cout << "Length=" << intVal << endl;
 
 	sReader.readLong64BigEndian(&longVal);
@@ -228,11 +232,14 @@ void readMkDir(SimpleReader &sReader) {
 	} else {
 		cout << "ACL size is not zero. Need some processing. Exiting now." << endl;	
 	}
-	//
 
 	//Read XAttrEditLogProto from the editlog
+	string filename = sReader.getFilename();
+	ifstream editLogIfStream; 
+	editLogIfStream.open(filename, ios::in | ios::binary);
+	editLogIfStream.seekg(sReader.getCurrentPosition(), ios::beg);
+
 	hadoop::hdfs::XAttrEditLogProto xattrEditLogProto; 
-	ifstream& editLogIfStream = sReader.getIfStream();
     google::protobuf::io::ZeroCopyInputStream* zRawInput = new google::protobuf::io::IstreamInputStream(&editLogIfStream);
     bool clean_eof;
     google::protobuf::util::ParseDelimitedFromZeroCopyStream(&xattrEditLogProto, zRawInput, &clean_eof);
@@ -242,11 +249,17 @@ void readMkDir(SimpleReader &sReader) {
 		cout << "xattrEditLogProto does not have src" << endl;
 	}
 	cout << "xattrEditLogProto xattrs size=" << xattrEditLogProto.xattrs_size() << endl;
+
+	editLogIfStream.close();
 	//zerocopyinputstream reads until the end of the file into a buffer,
 	//so ifstream is closed after parsedelimitedFromZeroCopyStream is called. 
 	//TODO: need to do something in order to recover the original ifstream os sReader
-	
+
+	//recover the stream position by adding length
+	sReader.setCurrentPosition(readmkdir_startposition + fieldLength);
 }
+
+
 /*
  About LayoutFeatures: 
  	- editlog follows LayoutFeature to determine the contents of editlog 
@@ -388,7 +401,10 @@ hdfs oev -i proto/edits_0000000000000000006-0000000000000000014 -o editlog14.xml
 
 			case OP_MKDIR: //3
 				cout << "OP_MKDIR opcode mkdir" << endl;
-				readMkDir(sReader); 
+				readMkDir(sReader, length - 8 - 4); //length does not include opcode length and checksum length 
+												    //so length - 4 - 8 is the size of the opcode, this size is needed 
+													//to reset sReader position when doing protocol buffer reads which 
+													//closes the sReader ifstream if used
 				break;
 
 			case OP_START_LOG_SEGMENT: //24

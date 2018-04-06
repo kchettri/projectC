@@ -17,8 +17,10 @@
 class SimpleReader {
 private: 
     ifstream readerStreamObj; 
+	string filename;
 public:
     void init(string filename);
+	string getFilename();
 	bool isEOF();
 	int readCharArray(char *buffer, int length);
 	int readString(string& str, int length);
@@ -29,6 +31,8 @@ public:
 	int readLong64BigEndian(long64 *l);
     int readLong64(long64* l); 
 	ifstream& getIfStream();
+	int getCurrentPosition();
+	void setCurrentPosition(int pos);
     //FSImage readFSImage();
     void close();
 };
