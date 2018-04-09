@@ -69,10 +69,37 @@ SimpleReader::readString(string& str, int length)  {
 	return 0;
 }
 
+//reads string, and sets null to last char
+int 
+SimpleReader::readStringEditlogInt16Encoding(string& str)  {
+	if (isEOF()) return -1;
+	int16 length;
+    readInt16BigEndian(&length);
+	char *buffer = new char[length + 1];
+    readerStreamObj.read((char *)buffer, length);
+	buffer[length] = '\0';
+	str = buffer;
+	delete buffer;
+	return 0;
+}
+
+
 int
 SimpleReader::readByte(byte *b) {
 	if (isEOF()) return -1;
     readerStreamObj.read((char *)b, sizeof(byte));
+	return 0;
+}
+
+int
+SimpleReader::readBoolean(bool *bl) {
+	if (isEOF()) return -1;
+	byte b; 
+	readByte(&b);
+	if ((int) b == 0) 
+		*bl = false;
+	else 
+		*bl = true;
 	return 0;
 }
 
@@ -92,6 +119,22 @@ SimpleReader::readInt(int *a) {
 	if (isEOF()) return -1;
     readerStreamObj.read((char *)a, sizeof(int));
 	return 0;
+}
+
+int
+SimpleReader::readVarint32(int* size) {
+	byte b;
+	int tempSize;
+	readByte(&b);
+	tempSize =  (int) b;
+	if (tempSize < 0x80) {
+		*size = tempSize;
+		return 0; 
+	}
+
+	cout << "Unsupported varint32 encoding!!, size greater than 0x80" << endl;
+	exit(1);
+	return 1;
 }
 
 int 

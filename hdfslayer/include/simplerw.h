@@ -24,9 +24,12 @@ public:
 	bool isEOF();
 	int readCharArray(char *buffer, int length);
 	int readString(string& str, int length);
+	int readStringEditlogInt16Encoding(string& str);
     int readByte(byte* b); 
+	int readBoolean(bool *bl);
 	int readInt16BigEndian(int16 *a);
     int readInt(int* a); 
+	int readVarint32(int* size);
 	int readIntBigEndian(int *a);
 	int readLong64BigEndian(long64 *l);
     int readLong64(long64* l); 

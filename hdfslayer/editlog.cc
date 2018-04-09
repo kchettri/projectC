@@ -143,24 +143,136 @@ void readStartLogSegment(SimpleReader &sReader) {
 //does nothing, no fields are present	
 }
 
+void readBlocks(SimpleReader &sReader) {
+	int intVal; 
+	int16 int16Val;
+	long64 longVal;
+	string str;
+
+	sReader.readIntBigEndian(&intVal); 
+	cout << "Num of blocks= " << intVal << endl;
+
+	for (int i=0; i < intVal; i++) {
+		sReader.readLong64BigEndian(&longVal);
+		cout << "blockid= " << longVal << endl;
+		sReader.readLong64BigEndian(&longVal);
+		cout << "numBytes= " << longVal << endl;
+		sReader.readLong64BigEndian(&longVal);
+		cout << "generationtimestamp= " << longVal << endl;
+	}
+}
+
+void readPermissionStatus(SimpleReader &sReader) {
+	byte byteVal;
+	int intVal; 
+	int16 int16Val;
+	long64 longVal;
+	string str;
+
+	//read permission status;
+	// String in permission status is stored as Text.class, which accepts 
+	// a different encoder/decoder if present
+  	//username = Text.readString(in, Text.DEFAULT_MAX_LEN);
+    //groupname = Text.readString(in, Text.DEFAULT_MAX_LEN);
+    //permission = FsPermission.read(in);
+	sReader.readByte(&byteVal);
+	sReader.readString(str, (int)byteVal);
+	cout << "username=" << str << " length=" << (int)byteVal  << endl;
+	sReader.readByte(&byteVal);
+	sReader.readString(str, (int)byteVal);
+	cout << "groupname=" << str << " length=" << (int)byteVal  << endl;
+	sReader.readInt16BigEndian(&int16Val);
+	cout << "Mode=" << (int)int16Val << endl;
+
+}
+
+bool
+readDelimitedFrom(SimpleReader &sReader, google::protobuf::MessageLite* msgLite) {
+	int msgSize =0; 
+	sReader.readVarint32(&msgSize);
+	cout << "protobuf Message size = " << msgSize << endl;
+	if (msgSize > 0) {
+		char* msgbuf = new char[msgSize];			
+		sReader.readCharArray(msgbuf, msgSize);
+		msgLite->ParseFromArray(msgbuf, msgSize);
+		delete msgbuf;
+		return true;
+	}
+	return false;
+}
+
 //OP_ADD
 void readAdd(SimpleReader &sReader) {
 	//fields
 	int intVal; 
 	int16 int16Val;
 	long64 longVal;
+	string str;
+	bool bl;
+	byte b;
+
+	int16Val = 0; 
+	cout << "length=" << int16Val << endl;
 
 	sReader.readLong64BigEndian(&longVal);
 	cout << "inode=" << longVal << endl;
-	
-	sReader.readIntBigEndian(&intVal); 
-	cout << "Length = " << intVal << endl;
-	
-	sReader.readLong64BigEndian(&longVal);
-	cout << "longVal= " << longVal << endl;
+
+	sReader.readStringEditlogInt16Encoding(str);
+	cout << "path=" << str << endl;
 
 	sReader.readInt16BigEndian(&int16Val); 
-	cout << "path length=" << (int) int16Val << endl;
+	cout << "replication =" << (int) int16Val << endl;
+	sReader.readLong64BigEndian(&longVal);
+	cout << "mtime= " << longVal << endl;
+
+
+	sReader.readLong64BigEndian(&longVal);
+	cout << "atime= " << longVal << endl;
+	sReader.readLong64BigEndian(&longVal);
+	cout << "blocksize= " << longVal << endl;
+
+	//blocks
+	readBlocks(sReader);
+	readPermissionStatus(sReader);
+
+
+	//Fields before this is also relevant to OP_CLOSE
+
+	//Read XAttrEditLogProto from the editlog
+	//this time, we need to read additional fields. 
+	// create a readdelimitedFrom using sReader's ifstream and then 
+	// dont close it at the end - need a custom implementation
+	sReader.readIntBigEndian(&intVal); 
+	cout << "ACL editlog entry size= " << intVal << endl;
+	int editLogACLSize = intVal;
+	for (int i=0; i< editLogACLSize; i++) {
+		cout << "Number of editLogSize is greater than 0. Not handled !!" << endl;
+		exit(1);
+	}
+
+	hadoop::hdfs::XAttrEditLogProto xattrEditLogProto; 
+	if (readDelimitedFrom(sReader, &xattrEditLogProto)) {
+		cout << "xattrEditLogProto entry is present in editlog!! Not handled. Exiting." << endl;
+		exit(1);
+	} else {
+		cout << "No xattrEditLogProto entries" << endl;
+	}
+
+	string clientName; 
+	string clientMachine;
+	sReader.readStringEditlogInt16Encoding(clientName);
+	sReader.readStringEditlogInt16Encoding(clientMachine);
+	cout << "clientName=" << clientName << "  clientMachine=" << clientMachine << endl;
+	
+	sReader.readBoolean(&bl);
+	cout << "overwrite=" << bl << endl;
+	
+	sReader.readByte(&b);
+	cout << "storage policy id=" << (int) b << endl;
+
+	sReader.readByte(&b);
+	cout << "erasure coding policy id=" << (int) b << endl;
+	
 }
 
 
@@ -189,13 +301,14 @@ void readMkDir(SimpleReader &sReader, int fieldLength) {
 
 	//read string path
 	//string encoding, length followed by char arrary of same length
-	sReader.readInt16BigEndian(&int16Val); 
-	cout << "string length=" << (int) int16Val << endl;
+	//sReader.readInt16BigEndian(&int16Val); 
+	//cout << "string length=" << (int) int16Val << endl;
 
 	//char *path = new char[int16Val + 1];
 	//sReader.readCharArray(path, int16Val);
 	//path[int16Val] = '\0';
-	sReader.readString(str, int16Val);
+	sReader.readStringEditlogInt16Encoding(str);
+	//sReader.readString(str, int16Val);
 	cout << "path=" << str << " length=" << str.length()  << endl;
 
 	sReader.readLong64BigEndian(&longVal);
@@ -239,10 +352,12 @@ void readMkDir(SimpleReader &sReader, int fieldLength) {
 	editLogIfStream.open(filename, ios::in | ios::binary);
 	editLogIfStream.seekg(sReader.getCurrentPosition(), ios::beg);
 
+	/*
 	hadoop::hdfs::XAttrEditLogProto xattrEditLogProto; 
     google::protobuf::io::ZeroCopyInputStream* zRawInput = new google::protobuf::io::IstreamInputStream(&editLogIfStream);
+	google::protobuf::io::CodedInputStream coded_input(zRawInput);
     bool clean_eof;
-    google::protobuf::util::ParseDelimitedFromZeroCopyStream(&xattrEditLogProto, zRawInput, &clean_eof);
+    google::protobuf::util::ParseDelimitedFromCodedStream(&xattrEditLogProto, &coded_input, &clean_eof);
 	if (xattrEditLogProto.has_src()) {
 		cout << "xattrEditLogProto has src: " << xattrEditLogProto.src() << endl; 
 	} else  {
@@ -250,13 +365,25 @@ void readMkDir(SimpleReader &sReader, int fieldLength) {
 	}
 	cout << "xattrEditLogProto xattrs size=" << xattrEditLogProto.xattrs_size() << endl;
 
+	cout << "codedinputstream curposition:" << coded_input.CurrentPosition() << endl;
 	editLogIfStream.close();
+	*/
 	//zerocopyinputstream reads until the end of the file into a buffer,
 	//so ifstream is closed after parsedelimitedFromZeroCopyStream is called. 
 	//TODO: need to do something in order to recover the original ifstream os sReader
 
+
+	//rudimentary parsedelimitedFrom equivalent of java implementation
+	hadoop::hdfs::XAttrEditLogProto xattrEditLogProto; 
+	if (readDelimitedFrom(sReader, &xattrEditLogProto)) {
+		cout << "xattrEditLogProto entry is present in editlog!! Not handled. Exiting." << endl;
+		exit(1);
+	}
+
 	//recover the stream position by adding length
-	sReader.setCurrentPosition(readmkdir_startposition + fieldLength);
+	//cout << "sReader currentPosition=" << sReader.getCurrentPosition() << endl;
+	//sReader.setCurrentPosition(readmkdir_startposition + fieldLength);
+	cout << "sReader currentPosition=" << sReader.getCurrentPosition() << endl;
 }
 
 
