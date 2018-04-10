@@ -272,9 +272,35 @@ void readAdd(SimpleReader &sReader) {
 
 	sReader.readByte(&b);
 	cout << "erasure coding policy id=" << (int) b << endl;
+
+	//read rpcids
+	int16 clientIdLength = 0; 
+	sReader.readInt16BigEndian(&clientIdLength);
+	cout << "clientIdLength =" << (int) clientIdLength << endl;
+	char* clientIdCharArray = new char[clientIdLength];
+	sReader.readCharArray(clientIdCharArray, clientIdLength);
+	cout << "clientId = ";
+	for(int i=0; i < clientIdLength; i++) {
+		if ((unsigned int)clientIdCharArray[i] < 10) cout << "0";
+		cout << std::hex << (+clientIdCharArray[i] & 0xFF);
+	}
+	cout << std::dec << endl;
 	
+	sReader.readIntBigEndian(&intVal); 
+	cout << "rpccall id=" << intVal << endl;
 }
 
+void readAllocateBlockId(SimpleReader& sReader) {
+	//fields
+	int intVal;
+	int16 int16Val;
+	long64 longVal;
+	byte byteVal;
+	string str;
+
+	sReader.readLong64BigEndian(&longVal);
+	cout << "blockid=" << longVal << endl;
+}
 
 //OP_MKDIR, 
 // currently all ops do not handle previous version of HDFS other than -64
@@ -523,7 +549,6 @@ hdfs oev -i proto/edits_0000000000000000006-0000000000000000014 -o editlog14.xml
 			case OP_ADD: //0
 				cout << "OP_ADD opcode read" << endl;
 				readAdd(sReader); 
-				exit(0);
 				break;
 
 			case OP_MKDIR: //3
@@ -538,6 +563,12 @@ hdfs oev -i proto/edits_0000000000000000006-0000000000000000014 -o editlog14.xml
 				cout << "OP_START_LOG_SEGMENT opcode read" << endl;
 				readStartLogSegment(sReader); 
 				break;
+
+  			case OP_ALLOCATE_BLOCK_ID: // = 32, 		//AllocateBlockIdOp.class),
+				cout << "OP_ALLOCATE_BLOCK_ID opcode read" << endl;
+				readAllocateBlockId(sReader);
+				break;
+
 
 			case OP_INVALID: // -1 
 				cout << "INVALID opcode read" << endl; 
