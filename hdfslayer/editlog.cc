@@ -162,6 +162,25 @@ void readBlocks(SimpleReader &sReader) {
 	}
 }
 
+void readBlocksCompactArray(SimpleReader& sReader) {
+	int intVal; 
+	int16 int16Val;
+	long64 longVal;
+	string str;
+
+	sReader.readVarLong64(&longVal); 
+	int size = (int) longVal;
+	cout << "Num of blocks= " << size << endl;
+	for (int i=0; i < size; i++) {
+		sReader.readLong64BigEndian(&longVal);
+		cout << "blockid= " << longVal << endl;
+		sReader.readVarLong64(&longVal); 
+		cout << "numBytes= " << longVal << endl;
+		sReader.readVarLong64(&longVal); 
+		cout << "generationtimestamp= " << longVal << endl;
+	}
+}
+
 void readPermissionStatus(SimpleReader &sReader) {
 	byte byteVal;
 	int intVal; 
@@ -199,6 +218,26 @@ readDelimitedFrom(SimpleReader &sReader, google::protobuf::MessageLite* msgLite)
 		return true;
 	}
 	return false;
+}
+
+//read rpcids
+void readRpcIds(SimpleReader& sReader) {
+	int intVal;
+
+	int16 clientIdLength = 0; 
+	sReader.readInt16BigEndian(&clientIdLength);
+	cout << "clientIdLength =" << (int) clientIdLength << endl;
+	char* clientIdCharArray = new char[clientIdLength];
+	sReader.readCharArray(clientIdCharArray, clientIdLength);
+	cout << "clientId = ";
+	for(int i=0; i < clientIdLength; i++) {
+		if ((unsigned int)clientIdCharArray[i] < 10) cout << "0";
+		cout << std::hex << (+clientIdCharArray[i] & 0xFF);
+	}
+	cout << std::dec << endl;
+	
+	sReader.readIntBigEndian(&intVal); 
+	cout << "rpccall id=" << intVal << endl;
 }
 
 //OP_ADD
@@ -273,23 +312,10 @@ void readAdd(SimpleReader &sReader) {
 	sReader.readByte(&b);
 	cout << "erasure coding policy id=" << (int) b << endl;
 
-	//read rpcids
-	int16 clientIdLength = 0; 
-	sReader.readInt16BigEndian(&clientIdLength);
-	cout << "clientIdLength =" << (int) clientIdLength << endl;
-	char* clientIdCharArray = new char[clientIdLength];
-	sReader.readCharArray(clientIdCharArray, clientIdLength);
-	cout << "clientId = ";
-	for(int i=0; i < clientIdLength; i++) {
-		if ((unsigned int)clientIdCharArray[i] < 10) cout << "0";
-		cout << std::hex << (+clientIdCharArray[i] & 0xFF);
-	}
-	cout << std::dec << endl;
-	
-	sReader.readIntBigEndian(&intVal); 
-	cout << "rpccall id=" << intVal << endl;
+	readRpcIds(sReader);
 }
 
+//OP_ALLOCATE_BLOCK_ID: // = 32, 		//AllocateBlockIdOp.class),
 void readAllocateBlockId(SimpleReader& sReader) {
 	//fields
 	int intVal;
@@ -301,6 +327,37 @@ void readAllocateBlockId(SimpleReader& sReader) {
 	sReader.readLong64BigEndian(&longVal);
 	cout << "blockid=" << longVal << endl;
 }
+
+//OP_SET_GENSTAMP_V2: //31
+void readSetGenStampv2(SimpleReader& sReader) {
+	//fields
+	int intVal;
+	int16 int16Val;
+	long64 longVal;
+	byte byteVal;
+	string str;
+
+	sReader.readLong64BigEndian(&longVal);
+	cout << "genstampv2=" << longVal << endl;
+}
+
+
+//"OP_ADD_BLOCK opcode read" << endl;
+void readAddBlock(SimpleReader& sReader) {
+	//fields
+	int intVal;
+	int16 int16Val;
+	long64 longVal;
+	byte byteVal;
+	string str;
+
+	sReader.readStringEditlogInt16Encoding(str);
+	cout << "path=" << str << " length=" << str.length()  << endl;
+
+	readBlocksCompactArray(sReader);
+	readRpcIds(sReader);
+}
+
 
 //OP_MKDIR, 
 // currently all ops do not handle previous version of HDFS other than -64
@@ -564,11 +621,20 @@ hdfs oev -i proto/edits_0000000000000000006-0000000000000000014 -o editlog14.xml
 				readStartLogSegment(sReader); 
 				break;
 
+			case OP_SET_GENSTAMP_V2: //31
+				cout << "OP_SET_GENSTAMP_V2 opcode read" << endl;
+				readSetGenStampv2(sReader);
+				break;
+
   			case OP_ALLOCATE_BLOCK_ID: // = 32, 		//AllocateBlockIdOp.class),
 				cout << "OP_ALLOCATE_BLOCK_ID opcode read" << endl;
 				readAllocateBlockId(sReader);
 				break;
 
+  			case OP_ADD_BLOCK: // 33, 				//AddBlockOp.class),
+				cout << "OP_ADD_BLOCK opcode read" << endl;
+				readAddBlock(sReader);
+				break;
 
 			case OP_INVALID: // -1 
 				cout << "INVALID opcode read" << endl; 

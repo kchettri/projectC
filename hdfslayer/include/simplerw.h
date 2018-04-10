@@ -37,6 +37,12 @@ public:
 	int getCurrentPosition();
 	void setCurrentPosition(int pos);
     //FSImage readFSImage();
+
+	//variable length int/long decoding
+	int decodeByteIntSize(sbyte b);
+	int isNegativeByteIntSize(sbyte b);
+	int readVarLong64(long64 *l);
+
     void close();
 };
 

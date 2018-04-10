@@ -123,6 +123,7 @@ SimpleReader::readInt(int *a) {
 
 int
 SimpleReader::readVarint32(int* size) {
+	if (isEOF()) return -1;
 	byte b;
 	int tempSize;
 	readByte(&b);
@@ -134,7 +135,46 @@ SimpleReader::readVarint32(int* size) {
 
 	cout << "Unsupported varint32 encoding!!, size greater than 0x80" << endl;
 	exit(1);
-	return 1;
+	return -1;
+}
+
+int
+SimpleReader::decodeByteIntSize(sbyte b) {
+    if (b >= -112) {
+      return 1;
+    } else if (b < -120) {
+      return -119 - b;
+    }
+    return -111 - b;
+}
+
+int SimpleReader::isNegativeByteIntSize(sbyte b) {
+    return b < -120 || (b >= -112 && b < 0);
+}
+
+int
+SimpleReader::readVarLong64(long64 *l) {
+	if (isEOF()) return -1;
+	sbyte sb;
+	byte b;
+	readByte(&b);
+	sb = (sbyte) b;
+
+	int size = decodeByteIntSize(sb);
+	if(size == 1) {
+		*l = (long64) sb;
+		return 0;
+	}
+
+	long64 lv = 0;
+	for(int i=0; i < size - 1; i++) {
+	  readByte(&b);
+      lv = lv << 8;
+      lv = lv | (b & 0xFF);
+	}
+	long64 lvxor = -1;
+	*l = (isNegativeByteIntSize(size)) ? lv ^ lvxor : lv; 	
+	return 0;
 }
 
 int 
