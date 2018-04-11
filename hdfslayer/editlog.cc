@@ -137,10 +137,13 @@ enum Opcodes {
 };
 
 // OP_START_LOG_SEGMENT
-// Every opcode has read and write functions, that reads/writes
-// their respective fields
 void readStartLogSegment(SimpleReader &sReader) {
-//does nothing, no fields are present	
+	//does nothing, no fields are present	
+}
+
+//OP_END_LOG_SEGMENT
+void readEndLogSegment(SimpleReader& sReader) {
+	//does nothing, no fields
 }
 
 void readBlocks(SimpleReader &sReader) {
@@ -240,8 +243,8 @@ void readRpcIds(SimpleReader& sReader) {
 	cout << "rpccall id=" << intVal << endl;
 }
 
-//OP_ADD
-void readAdd(SimpleReader &sReader) {
+//common for both OP_ADD and OP_CLOSE
+void readAddClose(SimpleReader& sReader) {
 	//fields
 	int intVal; 
 	int16 int16Val;
@@ -273,7 +276,24 @@ void readAdd(SimpleReader &sReader) {
 	//blocks
 	readBlocks(sReader);
 	readPermissionStatus(sReader);
+}
 
+//OP_CLOSE
+void readClose(SimpleReader &sReader) {
+	readAddClose(sReader);	
+}
+
+//OP_ADD
+void readAdd(SimpleReader &sReader) {
+	//fields
+	int intVal; 
+	int16 int16Val;
+	long64 longVal;
+	string str;
+	bool bl;
+	byte b;
+
+	readAddClose(sReader);
 
 	//Fields before this is also relevant to OP_CLOSE
 
@@ -358,6 +378,28 @@ void readAddBlock(SimpleReader& sReader) {
 	readRpcIds(sReader);
 }
 
+//OP_RENAME_OLD
+void readRenameOld(SimpleReader& sReader) {
+	//fields
+	int intVal;
+	int16 int16Val;
+	long64 longVal;
+	byte byteVal;
+	string str;
+
+	intVal = 0;
+	cout << "length = " << intVal << endl;
+
+	sReader.readStringEditlogInt16Encoding(str);
+	cout << "src=" << str << endl;
+	sReader.readStringEditlogInt16Encoding(str);
+	cout << "dest=" << str << endl;
+
+	sReader.readLong64BigEndian(&longVal);
+	cout << "timestamp=" << longVal << endl;
+
+	readRpcIds(sReader);
+}
 
 //OP_MKDIR, 
 // currently all ops do not handle previous version of HDFS other than -64
@@ -608,12 +650,29 @@ hdfs oev -i proto/edits_0000000000000000006-0000000000000000014 -o editlog14.xml
 				readAdd(sReader); 
 				break;
 
+			case OP_RENAME_OLD: //1
+				cout << "OP_RENAME_OLD read" << endl;
+				readRenameOld(sReader);
+				break;
+
 			case OP_MKDIR: //3
 				cout << "OP_MKDIR opcode mkdir" << endl;
 				readMkDir(sReader, length - 8 - 4); //length does not include opcode length and checksum length 
 												    //so length - 4 - 8 is the size of the opcode, this size is needed 
 													//to reset sReader position when doing protocol buffer reads which 
 													//closes the sReader ifstream if used
+				break;
+
+			case OP_CLOSE: //9
+				cout << "OP_CLOSE opcode read " << endl;
+				readClose(sReader);
+				break;
+			
+			case OP_END_LOG_SEGMENT: //23
+				cout << "OP_END_LOG_SEGMENT read" << endl;
+				readEndLogSegment(sReader);
+				cout << "End of edit log segment" << endl;
+				exit(1);
 				break;
 
 			case OP_START_LOG_SEGMENT: //24
