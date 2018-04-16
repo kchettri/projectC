@@ -35,6 +35,8 @@ public:
     int sendMessage(std::string s);
     void closeClientConnection();
     Data getData();
+
+	int getByteArray(byte* barr, int maxlength);
 };
 
 #endif /* TCPSERVER_H_ */

@@ -14,13 +14,6 @@
 /* boost headers */
 #include <boost/filesystem.hpp>
 
-/* C headers */
-//#include <sys/socket.h>
-//#include <stdlib.h>
-//#include <netinet/in.h>
-//#include <string.h>
-//#include <unistd.h>
-
 /* locals */
 #include "include/defs.h"
 #include "include/message.h"
@@ -38,7 +31,7 @@ class Master: public Logger {
 private:
 	vector<string> chunkservers;
 	string hdfsroot, dataroot;
-	const int HDFSPORT = 5646;
+	const int HDFSPORT = 9000; //from 
 	vector<ChunkServer> chunkServers;
 
 public:
@@ -53,6 +46,58 @@ public:
 		chunkservers.push_back("localhost");
 
 		loginit("HDFSMaster");
+	}
+
+	void getHeader(TCPServer& tserver) {
+		int buffer_size = 1024;
+		int intVar = 0;
+
+		byte* buffer = new byte[buffer_size];
+		
+		/*
+		  Client sends this header when connection is established. 
+
+	     * Write the connection header - this is sent when connection is established
+    	 * +----------------------------------+
+		 * |  "hrpc" 4 bytes                  |      
+     	 * +----------------------------------+
+     	 * |  Version (1 byte)                |
+     	 * +----------------------------------+
+     	 * |  Service Class (1 byte)          |
+     	 * +----------------------------------+
+      	 * |  AuthProtocol (1 byte)           |      
+     	 * +----------------------------------+
+ 		*/
+
+
+		int read_size = 4;
+        intVar = tserver.getByteArray(buffer, read_size); 
+
+		log("ByteArray size read =" + to_string(intVar));
+		if(intVar > 0) {
+			cout << "magic:"; 
+			for (int i=0; i < 4; i++) {
+				cout << buffer[i];
+			}				
+			cout << endl;
+		 }
+	
+		read_size = 1;
+        if(tserver.getByteArray(buffer, read_size) > 0) { 
+			cout << "version: " << (int) buffer[0] << endl;	
+		}
+
+		read_size = 1;
+        if(tserver.getByteArray(buffer, read_size) > 0) { 
+			cout << "service class: " << (int) buffer[0] << endl;	
+		}
+
+		read_size = 1;
+        if(tserver.getByteArray(buffer, read_size) > 0) { 
+			cout << "authprotocol: " << (int) buffer[0] << endl;	
+		}
+
+				
 	}
 
 	void serverMain() {
@@ -71,11 +116,14 @@ public:
             //Currently hdfsmaster only accepts one client connection at a time.
             //TODO: Add support to accept multiple client connections.
             tserver.acceptClientConnection();
+			getHeader(tserver);
 
             //Message Loop
             while (true) {
                 log("HDFSMaster: Waiting for Message in Master");
-                string str = tserver.getMessage();
+
+				string str="";
+				//string str = tserver.getMessage();
 
                 if (str.length() == 0) {
                     log("HDFSMaster: zero length string sent from client connection. Closing.");

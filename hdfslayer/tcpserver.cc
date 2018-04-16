@@ -78,6 +78,18 @@ TCPServer::getMessage() {
 }
 
 int
+TCPServer::getByteArray(byte* barr, int maxlength) {
+	int bytes_read; 
+	bytes_read = read(new_socket, barr, maxlength); 
+	
+    if(bytes_read <= 0) {
+        cout << "TCPServer returned zero length buffer" << endl;
+        return -1;
+    }
+	return bytes_read;
+}
+
+int
 TCPServer::sendMessage(string s) {
     return send(new_socket , s.c_str() , s.length() , 0 );
 }
