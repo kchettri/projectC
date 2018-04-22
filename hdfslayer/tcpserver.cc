@@ -64,6 +64,11 @@ TCPServer::acceptClientConnection() {
     }
 }
 
+int
+TCPServer::getSocketfd() {
+	return new_socket;
+}
+
 string
 TCPServer::getMessage() {
     valread = read(new_socket, buffer, 1024);

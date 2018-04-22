@@ -1,28 +1,33 @@
 /*
- 
-  simplerw.h
+	Implements reader and writer for istream objects.
+
+	simplerw.h
  
  */
 
 #ifndef SIMPLERW_H_
 #define SIMPLERW_H_
 
-//std headers
+/* C++ standard headers */
 #include <iostream>
 #include <fstream>
 
+/* projectC locals */
 #include "defs.h"
-
+#include "socketbuf.h"
 
 class SimpleReader {
 private: 
-    ifstream readerStreamObj; 
+    ifstream fileReaderStreamObj;
+	istream* readerStreamObj; 
 	string filename;
 public:
     void init(string filename);
+    void init(socketbuf& sockBuf);
 	string getFilename();
 	bool isEOF();
 	int readCharArray(char *buffer, int length);
+	int readByteArray(byte *buffer, int length);
 	int readString(string& str, int length);
 	int readStringEditlogInt16Encoding(string& str);
     int readByte(byte* b); 
@@ -36,14 +41,13 @@ public:
 	ifstream& getIfStream();
 	int getCurrentPosition();
 	void setCurrentPosition(int pos);
-    //FSImage readFSImage();
 
-	//variable length int/long decoding
+	/* variable length int/long decoding */
 	int decodeByteIntSize(sbyte b);
 	int isNegativeByteIntSize(sbyte b);
 	int readVarLong64(long64 *l);
 
-    void close();
+    void closeFileStreamObj();
 };
 
 class SimpleWriter {
@@ -56,7 +60,6 @@ public:
     void writeInt(int a); 
     void writeLong64(long64 l); 
     void close();
-    //void writeFSImage(FSImage fsImgageObj);
 };
 
 

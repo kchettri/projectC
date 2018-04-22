@@ -2,19 +2,28 @@
   Implementation of SimpleReader and SimpleWriter classes. 
 */
 
-// locals
-
 using namespace std;
 
+/* local headers */
 #include "include/simplerw.h"
-
 
 /* BEGIN: SimpleReader implementation */
 
 void
 SimpleReader::init(string filename) {
 	this->filename = filename;
-    readerStreamObj.open(filename, ios::in | ios::binary);
+    fileReaderStreamObj.open(filename, ios::in | ios::binary);
+	readerStreamObj = &fileReaderStreamObj;
+}
+
+void
+SimpleReader::init(socketbuf& sockBuf) {
+	readerStreamObj = new istream(&sockBuf); 
+}
+
+void
+SimpleReader::closeFileStreamObj() {
+    fileReaderStreamObj.close();
 }
 
 string 
@@ -24,37 +33,38 @@ SimpleReader::getFilename() {
 
 ifstream&
 SimpleReader::getIfStream() {
-	return readerStreamObj;
+	return fileReaderStreamObj;
 }
 
 int
 SimpleReader::getCurrentPosition() {
-	return readerStreamObj.tellg();
+	return readerStreamObj->tellg();
 }
 
 void
 SimpleReader::setCurrentPosition(int pos) {
-	readerStreamObj.seekg(pos, ios::beg);
+	readerStreamObj->seekg(pos, ios::beg);
 }
 
 bool
 SimpleReader::isEOF() {
-	if ((readerStreamObj.rdstate() & fstream::eofbit ) != 0 )
+	if ((readerStreamObj->rdstate() & fstream::eofbit ) != 0 )
 		return true;
 	else 
 		return false;
 }
 
-void
-SimpleReader::close() {
-    readerStreamObj.close();
+int 
+SimpleReader::readByteArray(byte *buffer, int length)  {
+	return readCharArray((char *)buffer, length);
 }
 
 int 
 SimpleReader::readCharArray(char *buffer, int length)  {
 	if (isEOF()) return -1;
-    readerStreamObj.read((char *)buffer, length);
-	return 0;
+    readerStreamObj->read((char *)buffer, length);
+	return length; //TODO: need to clarify this, whether to return length or status
+	//return 0;
 }
 
 //reads string, and sets null to last char
@@ -62,7 +72,7 @@ int
 SimpleReader::readString(string& str, int length)  {
 	if (isEOF()) return -1;
 	char *buffer = new char[length + 1];
-    readerStreamObj.read((char *)buffer, length);
+    readerStreamObj->read((char *)buffer, length);
 	buffer[length] = '\0';
 	str = buffer;
 	delete buffer;
@@ -76,7 +86,7 @@ SimpleReader::readStringEditlogInt16Encoding(string& str)  {
 	int16 length;
     readInt16BigEndian(&length);
 	char *buffer = new char[length + 1];
-    readerStreamObj.read((char *)buffer, length);
+    readerStreamObj->read((char *)buffer, length);
 	buffer[length] = '\0';
 	str = buffer;
 	delete buffer;
@@ -87,7 +97,7 @@ SimpleReader::readStringEditlogInt16Encoding(string& str)  {
 int
 SimpleReader::readByte(byte *b) {
 	if (isEOF()) return -1;
-    readerStreamObj.read((char *)b, sizeof(byte));
+    readerStreamObj->read((char *)b, sizeof(byte));
 	return 0;
 }
 
@@ -107,7 +117,7 @@ int
 SimpleReader::readInt16BigEndian(int16 *a)  {
 	if (isEOF()) return -1;
     unsigned char buffer[2];    
-    readerStreamObj.read((char *)buffer, 2); 
+    readerStreamObj->read((char *)buffer, 2); 
 
     *a =  (int) buffer[1] + 
            ((int) buffer[0] << 8); 
@@ -117,7 +127,7 @@ SimpleReader::readInt16BigEndian(int16 *a)  {
 int
 SimpleReader::readInt(int *a) {
 	if (isEOF()) return -1;
-    readerStreamObj.read((char *)a, sizeof(int));
+    readerStreamObj->read((char *)a, sizeof(int));
 	return 0;
 }
 
@@ -181,7 +191,7 @@ int
 SimpleReader::readIntBigEndian(int *a)  {
 	if (isEOF()) return -1;
     unsigned char buffer[4];    
-    readerStreamObj.read((char *)buffer, 4); 
+    readerStreamObj->read((char *)buffer, 4); 
 
     *a =  (int) buffer[3] + 
            ((int) buffer[2] << 8) +
@@ -193,7 +203,7 @@ SimpleReader::readIntBigEndian(int *a)  {
 int
 SimpleReader::readLong64(long64 *l) {
 	if (isEOF()) return -1;
-    readerStreamObj.read((char *)l, sizeof(long64));
+    readerStreamObj->read((char *)l, sizeof(long64));
 	return 0;
 }
 
@@ -201,7 +211,7 @@ int
 SimpleReader::readLong64BigEndian(long64 *l) {
 	if (isEOF()) return -1;
 	unsigned char buffer[8];
-	readerStreamObj.read((char *)buffer, 8); 
+	readerStreamObj->read((char *)buffer, 8); 
 
 	*l = (long64) buffer[7] + 
 		 ((long64) buffer[6] << 8) + 

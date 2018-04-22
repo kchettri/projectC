@@ -6,7 +6,7 @@
 ## include common compilation/linker flag definitions
 include Makefile.common
 
-COMMONSRCS = message.cc simplerw.cc
+COMMONSRCS = message.cc simplerw.cc socketbuf.cc
 COMMONOBJS = $(COMMONSRCS:.cc=.o)
 
 CHUNKSERVER = bin/chunkserver
@@ -39,7 +39,7 @@ $(SUBDIRS):
 	make -C $@
 
 %.o: %.cc
-	g++ -c -o $@ $< $(CFLAGS) $(INCLUDE)
+	g++ -g -c -o $@ $< $(CFLAGS) $(INCLUDE)
 
 $(MASTER): $(MASTEROBJS) $(COMMONOBJS)
 	g++ -o $@ $^ $(LDFLAGS)
@@ -48,7 +48,7 @@ $(CLIENT): $(CLIENTOBJS) $(COMMONOBJS)
 	g++ -o $@ $^ $(LDFLAGS)	
 
 $(EDITLOG): $(EDITLOGOBJS) $(COMMONOBJS) 
-	g++ -o $@ $^ $(PROTOBUF_OBJS) $(LDFLAGS)	$(STATICLIBS) 
+	g++ -g -o $@ $^ $(PROTOBUF_OBJS) $(LDFLAGS)	$(STATICLIBS) 
 
 clean: 
 	rm $(MASTER) $(CLIENT) $(MASTEROBJS) $(CLIENTOBJS) $(COMMONOBJS) $(EDITLOGOBJS)

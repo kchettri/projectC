@@ -35,6 +35,7 @@ public:
     int sendMessage(std::string s);
     void closeClientConnection();
     Data getData();
+	int getSocketfd();
 
 	int getByteArray(byte* barr, int maxlength);
 };

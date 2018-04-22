@@ -717,7 +717,7 @@ hdfs oev -i proto/edits_0000000000000000006-0000000000000000014 -o editlog14.xml
 			break;
 	}
 
-	sReader.close();
+	sReader.closeFileStreamObj();
 	
 	google::protobuf::ShutdownProtobufLibrary();
 

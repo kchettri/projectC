@@ -4,6 +4,8 @@
  * Simple HDFS server master.
  */
 
+using namespace std;
+
 /* C++ header */
 #include <iostream>
 #include <fstream>
@@ -20,8 +22,8 @@
 #include "include/logger.h"
 #include "include/tcpserver.h"
 #include "include/chunkserver.h"
+#include "include/simplerw.h"
 
-using namespace std;
 
 class Master: public Logger {
 
@@ -48,7 +50,7 @@ public:
 		loginit("HDFSMaster");
 	}
 
-	void getHeader(TCPServer& tserver) {
+	void getHeader(SimpleReader& sReader) {
 		int buffer_size = 1024;
 		int intVar = 0;
 
@@ -71,7 +73,7 @@ public:
 
 
 		int read_size = 4;
-        intVar = tserver.getByteArray(buffer, read_size); 
+        intVar = sReader.readByteArray(buffer, read_size); 
 
 		log("ByteArray size read =" + to_string(intVar));
 		if(intVar > 0) {
@@ -83,21 +85,19 @@ public:
 		 }
 	
 		read_size = 1;
-        if(tserver.getByteArray(buffer, read_size) > 0) { 
+        if(sReader.readByteArray(buffer, read_size) >= 0) { 
 			cout << "version: " << (int) buffer[0] << endl;	
 		}
 
 		read_size = 1;
-        if(tserver.getByteArray(buffer, read_size) > 0) { 
+        if(sReader.readByteArray(buffer, read_size) >= 0) { 
 			cout << "service class: " << (int) buffer[0] << endl;	
 		}
 
 		read_size = 1;
-        if(tserver.getByteArray(buffer, read_size) > 0) { 
+        if(sReader.readByteArray(buffer, read_size) >= 0) { 
 			cout << "authprotocol: " << (int) buffer[0] << endl;	
 		}
-
-				
 	}
 
 	void serverMain() {
@@ -110,13 +110,17 @@ public:
 		chunkServers.push_back(chunkServer);
 		Message replyMessage;
 		string replyMessageString;
+		socketbuf sockBuf; 
+		SimpleReader socketReader;
 
 		while (true) {
             log("HDFSmaster: listening to client connection at port: " + to_string(HDFSPORT));
             //Currently hdfsmaster only accepts one client connection at a time.
             //TODO: Add support to accept multiple client connections.
             tserver.acceptClientConnection();
-			getHeader(tserver);
+			sockBuf.setSocketfd(tserver.getSocketfd());
+			socketReader.init(sockBuf);
+			getHeader(socketReader);
 
             //Message Loop
             while (true) {
