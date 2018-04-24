@@ -584,6 +584,7 @@ int main(int argc, char* argv[]) {
 
 	string filename = argv[1];
 
+	cout << "Filename: " << filename << endl;
 	SimpleReader sReader; 
 	sReader.init(filename);
 									

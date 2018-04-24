@@ -224,6 +224,22 @@ SimpleReader::readLong64BigEndian(long64 *l) {
 	return 0;
 }
 
+bool
+SimpleReader::readDelimitedFrom(google::protobuf::MessageLite* msgLite) {
+    int msgSize =0;
+    readVarint32(&msgSize);
+    cout << "protobuf Message size = " << msgSize << endl;
+    if (msgSize > 0) {
+        char* msgbuf = new char[msgSize];
+        readCharArray(msgbuf, msgSize);
+        msgLite->ParseFromArray(msgbuf, msgSize);
+        delete msgbuf;
+        return true;
+    }
+    return false;
+}
+
+
 /* END: SimpleReader implementation*/
 
 
@@ -241,6 +257,11 @@ SimpleWriter::init(string filename) {
 void
 SimpleWriter::writeByte(byte b) {
     writerStreamObj.write((char *)&b, sizeof(byte));
+}
+
+void
+SimpleWriter::writeByteArray(byte* b, int len) {
+    writerStreamObj.write((char *)b, len);
 }
 
 void

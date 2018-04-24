@@ -16,6 +16,10 @@
 #include "defs.h"
 #include "socketbuf.h"
 
+/* protobuf headers */
+#include <google/protobuf/message.h>
+#include <google/protobuf/message_lite.h>
+
 class SimpleReader {
 private: 
     ifstream fileReaderStreamObj;
@@ -47,6 +51,8 @@ public:
 	int isNegativeByteIntSize(sbyte b);
 	int readVarLong64(long64 *l);
 
+	bool readDelimitedFrom(google::protobuf::MessageLite* msgLite);
+
     void closeFileStreamObj();
 };
 
@@ -57,6 +63,7 @@ public:
     SimpleWriter();
     void init(string filename);
     void writeByte(byte b); 
+    void writeByteArray(byte* b, int len); 
     void writeInt(int a); 
     void writeLong64(long64 l); 
     void close();

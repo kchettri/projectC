@@ -42,10 +42,10 @@ $(SUBDIRS):
 	g++ -g -c -o $@ $< $(CFLAGS) $(INCLUDE)
 
 $(MASTER): $(MASTEROBJS) $(COMMONOBJS)
-	g++ -o $@ $^ $(LDFLAGS)
+	g++ -g -o $@ $^ $(PROTOBUF_OBJS) $(LDFLAGS) $(STATICLIBS)
 
 $(CLIENT): $(CLIENTOBJS) $(COMMONOBJS)
-	g++ -o $@ $^ $(LDFLAGS)	
+	g++ -o $@ $^ $(LDFLAGS)	$(STATICLIBS)
 
 $(EDITLOG): $(EDITLOGOBJS) $(COMMONOBJS) 
 	g++ -g -o $@ $^ $(PROTOBUF_OBJS) $(LDFLAGS)	$(STATICLIBS) 

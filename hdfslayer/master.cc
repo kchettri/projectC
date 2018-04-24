@@ -24,6 +24,15 @@ using namespace std;
 #include "include/chunkserver.h"
 #include "include/simplerw.h"
 
+/* RPC protobuf datastructures */
+#include "proto/hadoop.common/src/IpcConnectionContext.pb.h"
+#include "proto/hadoop.common/src/RpcHeader.pb.h"
+
+/* protocol buffer delimited parser support */
+#include <google/protobuf/io/zero_copy_stream.h>
+#include <google/protobuf/io/zero_copy_stream_impl.h>
+#include <google/protobuf/util/delimited_message_util.h>
+
 
 class Master: public Logger {
 
@@ -104,6 +113,13 @@ public:
 		TCPServer tserver;
 		tserver.bindToPort(HDFSPORT);
 
+		//temp variables to use for SimpleReader
+		int intVal;
+		int16 int16Val;
+		long64 longVal;
+		byte byteVal;
+		string str;
+
 		/* Create chunkserver threads */
 		ChunkServer chunkServer("6800");
 		thread chunkServerThread(&ChunkServer::chunkMain, chunkServer);
@@ -112,6 +128,7 @@ public:
 		string replyMessageString;
 		socketbuf sockBuf; 
 		SimpleReader socketReader;
+		SimpleWriter sWriter;
 
 		while (true) {
             log("HDFSmaster: listening to client connection at port: " + to_string(HDFSPORT));
@@ -121,6 +138,39 @@ public:
 			sockBuf.setSocketfd(tserver.getSocketfd());
 			socketReader.init(sockBuf);
 			getHeader(socketReader);
+
+			socketReader.readIntBigEndian(&intVal);
+			cout << "Length = " << intVal << endl;
+
+			//SASL support is present in the existing Hadoop client/server 
+			//Authentication is not supported currently for submitting jobs (Kerberos based authentication)
+
+			//Connection context is next: 
+			//RpcRequestHeaderProto, followed by  IpcConnectionContextProto
+			hadoop::common::RpcRequestHeaderProto requestHeaderPB;
+			socketReader.readDelimitedFrom(&requestHeaderPB);
+			
+			if(requestHeaderPB.has_clientid()) {
+				cout << "clientid=" ; 
+				string clientid = requestHeaderPB.clientid();
+				for (int i=0; i < clientid.length(); i++) {
+					if ((unsigned int)clientid.at(i) < 10) cout << "0";
+					cout << std::hex << (+clientid.at(i) & 0xFF);
+					//cout << "Client id=" << requestHeaderPB.clientid() << endl;
+				}
+				cout << std::dec << endl;
+				cout << "clientid length=" << clientid.length() << endl;
+
+			} else {
+				cout << "No client id in requestHeaderPB" << endl;
+			}
+
+			if(requestHeaderPB.has_callid()) {
+				cout << "Call id=" << requestHeaderPB.callid() << endl;
+			} else {
+				cout << "No call id in requestHeaderPB" << endl;
+			}
+
 
             //Message Loop
             while (true) {
@@ -192,9 +242,13 @@ public:
 };
 
 int  main() {
+
+	GOOGLE_PROTOBUF_VERIFY_VERSION;
 	Master shdfsmaster;
 	shdfsmaster.init();
 	shdfsmaster.serverMain();
+	google::protobuf::ShutdownProtobufLibrary();
 	return 0;
+
 }
 
