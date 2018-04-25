@@ -120,6 +120,12 @@ public:
 		byte byteVal;
 		string str;
 
+		//call ids
+  		const int AUTHORIZATION_FAILED_CALL_ID = -1;
+		const int INVALID_CALL_ID = -2;
+		const int CONNECTION_CONTEXT_CALL_ID = -3;
+		const int PING_CALL_ID = -4;
+ 
 		/* Create chunkserver threads */
 		ChunkServer chunkServer("6800");
 		thread chunkServerThread(&ChunkServer::chunkMain, chunkServer);
@@ -167,10 +173,68 @@ public:
 
 			if(requestHeaderPB.has_callid()) {
 				cout << "Call id=" << requestHeaderPB.callid() << endl;
+
+				if (requestHeaderPB.callid() == AUTHORIZATION_FAILED_CALL_ID) {
+					cout << "AUTHORIZATION_FAILED_CALL_ID callid. Not handling. Exiting." << endl;
+					exit(1);
+				} else if (requestHeaderPB.callid() == INVALID_CALL_ID) {
+					cout << "INVALID_CALL_ID callid. Not handling. Exiting." << endl;
+					exit(1);
+				} else if (requestHeaderPB.callid() == CONNECTION_CONTEXT_CALL_ID) {
+					cout << "CONNECTION_CONTEXT_CALL_ID" << endl;
+				
+					//connectioncontext gives 2 things: 
+					// - protocolname = org.apache.hadoop.hdfs.protocol.ClientProtocol for hadoop client
+					// - user info for authentication
+					hadoop::common::IpcConnectionContextProto connectionContextProtoPB;
+					socketReader.readDelimitedFrom(&connectionContextProtoPB);
+
+					if(connectionContextProtoPB.has_protocol()){
+						cout << "connectioncontext protocol=" << connectionContextProtoPB.protocol() << endl;
+					}
+
+					if (connectionContextProtoPB.has_userinfo()) {
+						hadoop::common::UserInformationProto uinfoProto = connectionContextProtoPB.userinfo();
+						cout << "connectionContext userinfo, effectiveuser=" << uinfoProto.effectiveuser() << endl;
+						cout << "connectionConotext userinfo, realuser=" << uinfoProto.realuser() << endl;
+						//cout << "connectionContext userinfo=" << connectionContextProtoPB.userinfo() << endl;
+					}
+				
+				} else if (requestHeaderPB.callid() == PING_CALL_ID) {
+					cout << "PING_CALL_ID callid. Not handling. Exiting." << endl;
+					exit(1);
+				} 
 			} else {
 				cout << "No call id in requestHeaderPB" << endl;
 			}
 
+			socketReader.readIntBigEndian(&intVal);
+			cout << "Length = " << intVal << endl;
+			
+			hadoop::common::RpcRequestHeaderProto requestHeaderPB2;
+			socketReader.readDelimitedFrom(&requestHeaderPB2);
+
+			if(requestHeaderPB.has_callid()) {
+				cout << "requestHeaderPB2 Call id=" << requestHeaderPB2.callid() << endl;
+			} else {
+				cout << "requestHeaderPB2 call id is not present" << endl;
+			}
+			
+			if(requestHeaderPB2.has_clientid()) {
+				cout << "clientid=" ; 
+				string clientid = requestHeaderPB2.clientid();
+				for (int i=0; i < clientid.length(); i++) {
+					if ((unsigned int)clientid.at(i) < 10) cout << "0";
+					cout << std::hex << (+clientid.at(i) & 0xFF);
+					//cout << "Client id=" << requestHeaderPB.clientid() << endl;
+				}
+				cout << std::dec << endl;
+				cout << "clientid length=" << clientid.length() << endl;
+
+			} else {
+				cout << "No client id in requestHeaderPB2" << endl;
+			}
+	
 
             //Message Loop
             while (true) {
