@@ -54,52 +54,52 @@ void ChunkServer::chunkMain() {
      *  - Based on that message, do the processing.
      */
     while(true) {
-	log("HDFSChunkServer: Chunkserver accepting connection at port: "
-	     + portNum);
-	tserver.acceptClientConnection();
+    log("HDFSChunkServer: Chunkserver accepting connection at port: "
+         + portNum);
+    tserver.acceptClientConnection();
 
-	//data transfer loop
-	log("HDFSChunkServer: Waiting for Message in ChunkServer");
-	string str = tserver.getMessage();
-	cout << "ChunkServer: message string received ="  << str << endl;
-	//end of message
-	if(str.length() == 0) {
-	    log("HDFSChunkServer: Zero length string returned. Terminating client connection. ");
-	    //break;
-	}
-	string originalMessage(str.c_str());
+    //data transfer loop
+    log("HDFSChunkServer: Waiting for Message in ChunkServer");
+    string str = tserver.getMessage();
+    cout << "ChunkServer: message string received ="  << str << endl;
+    //end of message
+    if(str.length() == 0) {
+        log("HDFSChunkServer: Zero length string returned. Terminating client connection. ");
+        //break;
+    }
+    string originalMessage(str.c_str());
 
-	//strtok changes the string that it tokenizes
-	Message clientMessage = Message::deserialize(str);
-	clientMessage.printMessage();
+    //strtok changes the string that it tokenizes
+    Message clientMessage = Message::deserialize(str);
+    clientMessage.printMessage();
 
-	Message replyMessage;
-	string replyMessageString;
+    Message replyMessage;
+    string replyMessageString;
 
-	switch(clientMessage.mtype) {
-	    case READ:
-		replyMessage = readFile(clientMessage);
-		replyMessageString = replyMessage.serialize();
-		log("HDFSChunkServer: replyMessageString=" + replyMessageString);
-		tserver.sendMessage(replyMessage.serialize());
-		break;
+    switch(clientMessage.mtype) {
+        case READ:
+        replyMessage = readFile(clientMessage);
+        replyMessageString = replyMessage.serialize();
+        log("HDFSChunkServer: replyMessageString=" + replyMessageString);
+        tserver.sendMessage(replyMessage.serialize());
+        break;
 
-	    case WRITE:
-		break;
+        case WRITE:
+        break;
 
-	    case LIST: //this can only happen in Master
-		break;
+        case LIST: //this can only happen in Master
+        break;
 
-	    case DOWNLOAD:
-		downloadFile(clientMessage.remoteFileName);
-		break;
+        case DOWNLOAD:
+        downloadFile(clientMessage.remoteFileName);
+        break;
 
-	    case UPLOAD:
-		uploadFile(clientMessage.remoteFileName);
-		break;
-	}
-	tserver.closeClientConnection();
-	log("Chunkserver: Finished serving client message: " + str);
+        case UPLOAD:
+        uploadFile(clientMessage.remoteFileName);
+        break;
+    }
+    tserver.closeClientConnection();
+    log("Chunkserver: Finished serving client message: " + str);
     }
     cout << "Chunkserver: end of thread." << endl;
 }
@@ -130,12 +130,12 @@ void ChunkServer::uploadFile(string remoteFileName) {
     cout << "Chunkserver: output remoteFileName= " << (chunkdataroot + remoteFileName) << endl;
     //while(true)
     for (int i=0; i < 3; i ++) { //loop only 3 times
-	Data d = tserver.getData();
-	if (d.getLength() > 0) {
-	    foutput.write((const char *)d.getDataBuf(), d.getLength());
-	} else {
-	    break;
-	}
+    Data d = tserver.getData();
+    if (d.getLength() > 0) {
+        foutput.write((const char *)d.getDataBuf(), d.getLength());
+    } else {
+        break;
+    }
     }
     foutput.close();
 }

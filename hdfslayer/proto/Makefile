@@ -8,24 +8,12 @@ include ../Makefile.common
 
 STATICLIBS = libprotobuf.a
 
-PROTOINCLUDE = -I=hadoop.common -I=hadoop.common.client -I=hadoop.hdfs -I=hadoop.hdfs.client
-
-HADOOP_HDFS_PROTOCFILES = hadoop.hdfs/fsimage.proto hadoop.hdfs/editlog.proto
-HADOOP_HDFS_PROTOSRCDIR = hadoop.hdfs/src/
-HADOOP_HDFS_PROTOSRC = hadoop.hdfs/src/fsimage.pb.cc hadoop.hdfs/src/editlog.pb.cc
-HADOOP_HDFS_PROTOOBJS = $(HADOOP_HDFS_PROTOSRC:.cc=.o)
-
-HADOOP_HDFS_CLIENT_PROTOCFILES = hadoop.hdfs.client/acl.proto hadoop.hdfs.client/hdfs.proto hadoop.hdfs.client/xattr.proto
-HADOOP_HDFS_CLIENT_PROTOSRCDIR = hadoop.hdfs.client/src/
-HADOOP_HDFS_CLIENT_PROTOSRC = hadoop.hdfs.client/src/acl.pb.cc hadoop.hdfs.client/src/hdfs.pb.cc hadoop.hdfs.client/src/xattr.pb.cc
-HADOOP_HDFS_CLIENT_PROTOOBJS = $(HADOOP_HDFS_CLIENT_PROTOSRC:.cc=.o)
-
-HADOOP_COMMON_PROTOCFILES = hadoop.common/Security.proto hadoop.common/RpcHeader.proto hadoop.common/IpcConnectionContext.proto
-HADOOP_COMMON_PROTOSRCDIR = hadoop.common/src/
-HADOOP_COMMON_PROTOSRC = hadoop.common/src/Security.pb.cc hadoop.common/src/RpcHeader.pb.cc hadoop.common/src/IpcConnectionContext.pb.cc
-HADOOP_COMMON_PROTOOBJS = $(HADOOP_COMMON_PROTOSRC:.cc=.o)
-
-PROTO_SRC_HEADERS = -I$(HADOOP_HDFS_PROTOSRCDIR) -I$(HADOOP_HDFS_CLIENT_PROTOSRCDIR) -I$(HADOOP_COMMON_PROTOSRCDIR)
+# Location of the proto files
+PROTOINCLUDE = \
+    -I=$(INCLUDEROOTFOLDER)/proto/hadoop.common \
+    -I=$(INCLUDEROOTFOLDER)/proto/hadoop.common.client \
+    -I=$(INCLUDEROOTFOLDER)/proto/hadoop.hdfs \
+    -I=$(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client
 
 MAIN = main
 

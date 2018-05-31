@@ -66,7 +66,7 @@ TCPServer::acceptClientConnection() {
 
 int
 TCPServer::getSocketfd() {
-	return new_socket;
+    return new_socket;
 }
 
 string
@@ -84,14 +84,14 @@ TCPServer::getMessage() {
 
 int
 TCPServer::getByteArray(byte* barr, int maxlength) {
-	int bytes_read; 
-	bytes_read = read(new_socket, barr, maxlength); 
-	
+    int bytes_read; 
+    bytes_read = read(new_socket, barr, maxlength); 
+    
     if(bytes_read <= 0) {
         cout << "TCPServer returned zero length buffer" << endl;
         return -1;
     }
-	return bytes_read;
+    return bytes_read;
 }
 
 int

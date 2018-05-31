@@ -9,17 +9,54 @@ PROTO_STATICLIBS = $(INCLUDEROOTFOLDER)/proto/libprotobuf.a
 
 
 HADOOP_HDFS_PROTOSRCDIR = $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs/src/
-HADOOP_HDFS_CLIENT_PROTOSRCDIR = $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client/src/
-HADOOP_COMMON_PROTOSRCDIR = $(INCLUDEROOTFOLDER)/proto/hadoop.common/src/
+HADOOP_HDFS_PROTOCFILES = \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs/editlog.proto \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs/fsimage.proto
 
-HADOOP_HDFS_PROTOSRC = $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs/src/fsimage.pb.cc $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs/src/editlog.pb.cc
+HADOOP_HDFS_PROTOSRC = \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs/src/editlog.pb.cc \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs/src/fsimage.pb.cc 
+
 HADOOP_HDFS_PROTOOBJS = $(HADOOP_HDFS_PROTOSRC:.cc=.o)
 
-HADOOP_HDFS_CLIENT_PROTOSRC = $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client/src/acl.pb.cc $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client/src/hdfs.pb.cc $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client/src/xattr.pb.cc
+
+HADOOP_HDFS_CLIENT_PROTOSRCDIR = $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client/src/
+HADOOP_HDFS_CLIENT_PROTOCFILES = \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client/acl.proto \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client/hdfs.proto \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client/xattr.proto \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client/inotify.proto \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client/erasurecoding.proto \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client/encryption.proto \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client/ClientNamenodeProtocol.proto
+
+HADOOP_HDFS_CLIENT_PROTOSRC = \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client/src/acl.pb.cc \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client/src/hdfs.pb.cc \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client/src/xattr.pb.cc \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client/src/inotify.pb.cc \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client/src/erasurecoding.pb.cc \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client/src/encryption.pb.cc \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.hdfs.client/src/ClientNamenodeProtocol.pb.cc
+
 HADOOP_HDFS_CLIENT_PROTOOBJS = $(HADOOP_HDFS_CLIENT_PROTOSRC:.cc=.o)
 
-HADOOP_COMMON_PROTOSRC = $(INCLUDEROOTFOLDER)/proto/hadoop.common/src/Security.pb.cc $(INCLUDEROOTFOLDER)/proto/hadoop.common/src/IpcConnectionContext.pb.cc $(INCLUDEROOTFOLDER)/proto/hadoop.common/src/RpcHeader.pb.cc
+
+HADOOP_COMMON_PROTOSRCDIR = $(INCLUDEROOTFOLDER)/proto/hadoop.common/src/
+HADOOP_COMMON_PROTOCFILES = \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.common/Security.proto \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.common/RpcHeader.proto \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.common/IpcConnectionContext.proto \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.common/ProtobufRpcEngine.proto
+
+HADOOP_COMMON_PROTOSRC = \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.common/src/Security.pb.cc \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.common/src/IpcConnectionContext.pb.cc \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.common/src/RpcHeader.pb.cc \
+    $(INCLUDEROOTFOLDER)/proto/hadoop.common/src/ProtobufRpcEngine.pb.cc
+
 HADOOP_COMMON_PROTOOBJS = $(HADOOP_COMMON_PROTOSRC:.cc=.o)
+
 
 PROTO_SRC_HEADERS = -I$(HADOOP_HDFS_PROTOSRCDIR) -I$(HADOOP_HDFS_CLIENT_PROTOSRCDIR) -I$(HADOOP_COMMON_PROTOSRCDIR)
 

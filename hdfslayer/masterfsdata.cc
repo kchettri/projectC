@@ -176,7 +176,7 @@ public:
     byte isInNodeFileUnderConstructionSnapshot; 
     char* clientName; 
     char* clientMachine; //{clientName: short + byte[], clientMachine: short + byte[]} (when
-			  // isINodeFileUnderConstructionSnapshot is true),
+              // isINodeFileUnderConstructionSnapshot is true),
     int fsPermission; 
     PermissionStatus permStatus; 
 
@@ -346,17 +346,17 @@ FSImage::createInitialFsImageFile() {
 void 
 FSImage::printObj() {
     cout << "FSImage: " << endl
-	 << "\tlayoutVersion: " << layoutVersion << endl
-	 << "\tnamespaceID:   " << namespaceID << endl
-	 << "\tnumberItemsInFSDirectoryTree: " << numberItemsInFSDirectoryTree << endl
-	 << "\tnamesystemGenerationStampV1: " << namesystemGenerationStampV1 << endl
-	 << "\tnamesystemGenerationStampV2: " << namesystemGenerationStampV2 << endl
-	 << "\tgenerationStampAtBlockIdSwitch: " << generationStampAtBlockIdSwitch << endl
-	 << "\tlastAllocatedBlockId: " << lastAllocatedBlockId << endl
-	 << "\ttransactionID: " << transactionID << endl
-	 << "\tsnapshotCounter: " << snapshotCounter << endl
-	 << "\tnumberOfSnapshots: " << numberOfSnapshots << endl
-	 << "\tnumOfSnapshottableDirs: " << numOfSnapshottableDirs << endl;
+     << "\tlayoutVersion: " << layoutVersion << endl
+     << "\tnamespaceID:   " << namespaceID << endl
+     << "\tnumberItemsInFSDirectoryTree: " << numberItemsInFSDirectoryTree << endl
+     << "\tnamesystemGenerationStampV1: " << namesystemGenerationStampV1 << endl
+     << "\tnamesystemGenerationStampV2: " << namesystemGenerationStampV2 << endl
+     << "\tgenerationStampAtBlockIdSwitch: " << generationStampAtBlockIdSwitch << endl
+     << "\tlastAllocatedBlockId: " << lastAllocatedBlockId << endl
+     << "\ttransactionID: " << transactionID << endl
+     << "\tsnapshotCounter: " << snapshotCounter << endl
+     << "\tnumberOfSnapshots: " << numberOfSnapshots << endl
+     << "\tnumOfSnapshottableDirs: " << numOfSnapshottableDirs << endl;
 }
 
 void 
