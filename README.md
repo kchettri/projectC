@@ -1,2 +1,2 @@
 # projectC
-Nothing here now. See here later.
+Test attempt at creating C++ version of Hadoop
